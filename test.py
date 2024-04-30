@@ -1,4 +1,5 @@
 import torch
+import os
 from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
@@ -49,13 +50,17 @@ def show_image(denoised_image, noisy_image, original_image):
 
 
 def main():
-    image_file = "baseline-dataset/TestImages/3637013_c675de7705.jpg"
     model = torch.load("checkpoints/epoch9.pth")
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print("Device:", device)
     model.eval()
-    denoised_image, noisy_image, original_image = denoise_image(model, image_file)
-    show_image(denoised_image, noisy_image, original_image)
+    image_files = os.listdir(TEST_FOLDER)
+    for i in range(10):
+        file = image_files[i]
+        if file.endswith(".jpg"):
+            image_file = os.path.join(TEST_FOLDER, file)
+            denoised_image, noisy_image, original_image = denoise_image(model, image_file)
+            show_image(denoised_image, noisy_image, original_image)
 
 
 if __name__ == "__main__":
