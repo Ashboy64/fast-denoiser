@@ -1,0 +1,20 @@
+model:
+  name: rgb_baseline
+data:
+  name: tiny_imagenet
+  batch_size: 64
+  test_frac: 0.1
+  num_preprocessing_workers: 8
+  num_dataloader_workers: 8
+  seed: 0
+  noise_level: 0.1
+device: mps
+training:
+  num_grad_steps: 5000
+optimizer:
+  lr: 0.01
+logging:
+  log_interval: 1
+  eval_interval: 100
+  ckpt_dir: ../checkpoints
+  ckpt_interval: 100

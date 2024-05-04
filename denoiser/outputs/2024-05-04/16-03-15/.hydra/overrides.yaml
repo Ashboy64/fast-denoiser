@@ -1,0 +1,3 @@
+- device=mps
+- logging.eval_interval=10
+- logging.log_interval=10000

@@ -1,0 +1,23 @@
+defaults:
+  - model: rgb_baseline
+  - data: tiny_imagenet
+  - _self_
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled
+
+device: cpu
+
+training:
+  num_grad_steps: 5000
+  
+optimizer:
+  lr: 0.01
+
+logging:
+  log_interval: 1
+  eval_interval: 100
+  
+  save_ckpt: True
+  ckpt_dir: ../checkpoints
+  ckpt_interval: 100
+
