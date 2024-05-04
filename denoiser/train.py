@@ -1,7 +1,13 @@
 import os
 import tqdm
-import hydra
+import wandb
 from datetime import datetime
+
+import random
+import numpy as np
+
+import hydra
+from omegaconf import OmegaConf
 
 import torch
 import torch.optim as optim
@@ -57,33 +63,83 @@ def train(model, train_loader, val_loader, test_loader, config):
     loss_fn = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.optimizer.lr)
 
-    for iter_num in tqdm.trange(num_grad_steps):
-        features, targets = next(train_iterator)
-        features = move_features_to_device(features, device)
-        targets = targets.to(device)
+    epoch = 0
+    iter_num = 0
 
-        outputs = model(features)
-        loss = loss_fn(outputs, targets)
+    while iter_num < num_grad_steps:
+        print(f"Epoch {epoch}")
+        
+        for features, targets in tqdm.tqdm(train_loader):
+            if iter_num == num_grad_steps:
+                break
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            features = move_features_to_device(features, device)
+            targets = targets.to(device)
 
-        if (iter_num + 1) % log_interval == 0:
-            print(f"{iter_num}: Train loss = {loss}")
+            outputs = model(features)
+            loss = loss_fn(outputs, targets)
 
-        if (iter_num + 1) % eval_interval == 0:
-            val_loss, test_loss = eval_model(
-                model, [val_loader, test_loader], device
-            )
-            print(f"{iter_num}: Val loss = {val_loss}")
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        if save_ckpt and (iter_num + 1) % ckpt_interval == 0:
-            torch.save(model, os.path.join(ckpt_dir, f"iter_{iter_num}.pt"))
+            to_log = {}
+
+            if (iter_num + 1) % log_interval == 0:
+                to_log["train/train_loss"] = loss
+                print(f"{iter_num}: Train loss = {loss}")
+
+            if (iter_num + 1) % eval_interval == 0:
+                val_loss, test_loss = eval_model(
+                    model, [val_loader, test_loader], device
+                )
+                print(f"{iter_num}: Val loss = {val_loss}")
+
+                to_log["val/val_loss"] = val_loss
+                to_log["test/test_loss"] = test_loss
+
+            if len(to_log) > 0:
+                wandb.log(to_log)
+
+            if save_ckpt and (iter_num + 1) % ckpt_interval == 0:
+                torch.save(model, os.path.join(ckpt_dir, f"iter_{iter_num}.pt"))
+
+            iter_num += 1
+        
+        epoch += 1
+
+
+def get_run_name(config):
+    run_name = f"{config.data.name}-{config.model.name}"
+    if len(config.wandb.run_name_suffix) > 0:
+        run_name = f"{run_name}-{config.wandb.run_name_suffix}"
+    return run_name
+
+
+def setup_wandb(config):
+    if "WANDB_API_KEY" in os.environ:
+        wandb.login(key=os.environ["WANDB_API_KEY"])
+
+    wandb.init(
+        project=config.wandb.project,
+        entity=config.wandb.entity,
+        name=get_run_name(config),
+        config=OmegaConf.to_container(config),
+        mode=config.wandb.mode,
+    )
+
+
+def seed(seed=0):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 @hydra.main(config_path="config", config_name="baseline", version_base=None)
 def main(config):
+    seed(config.seed)
+    setup_wandb(config)
+
     model = load_model(config.model).to(config.device)
     train_loader, val_loader, test_loader = load_data(config.data)
 

@@ -6,6 +6,7 @@ defaults:
   - override hydra/job_logging: disabled
 
 device: cpu
+seed: 0
 
 training:
   num_grad_steps: 5000
@@ -21,3 +22,13 @@ logging:
   ckpt_dir: ../checkpoints
   ckpt_interval: 100
 
+wandb:
+  mode: online
+  entity: aprao
+  project: fast-denoiser
+  run_name_suffix: ""
+
+hydra:  
+  output_subdir: null  
+  run:  
+    dir: .
