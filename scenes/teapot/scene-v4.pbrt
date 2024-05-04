@@ -6,8 +6,8 @@ Sampler "sobol"
 PixelFilter "triangle"
     "float xradius" [ 1 ]
     "float yradius" [ 1 ]
-Film "rgb"
-    "string filename" [ "teapot.png" ]
+Film "gbuffer"
+    "string filename" [ "teapot.exr" ]
     "integer yresolution" [ 64 ]
     "integer xresolution" [ 64 ]
 Camera "perspective"
