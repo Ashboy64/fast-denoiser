@@ -59,7 +59,6 @@ def train(model, train_loader, val_loader, test_loader, config):
         )
         os.makedirs(ckpt_dir, exist_ok=True)
 
-    train_iterator = iter(train_loader)
     loss_fn = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.optimizer.lr)
 
@@ -68,7 +67,7 @@ def train(model, train_loader, val_loader, test_loader, config):
 
     while iter_num < num_grad_steps:
         print(f"Epoch {epoch}")
-        
+
         for features, targets in tqdm.tqdm(train_loader):
             if iter_num == num_grad_steps:
                 break
@@ -86,6 +85,7 @@ def train(model, train_loader, val_loader, test_loader, config):
             to_log = {}
 
             if (iter_num + 1) % log_interval == 0:
+                to_log["iter"] = iter_num
                 to_log["train/train_loss"] = loss
                 print(f"{iter_num}: Train loss = {loss}")
 
@@ -95,6 +95,7 @@ def train(model, train_loader, val_loader, test_loader, config):
                 )
                 print(f"{iter_num}: Val loss = {val_loss}")
 
+                to_log["iter"] = iter_num
                 to_log["val/val_loss"] = val_loss
                 to_log["test/test_loss"] = test_loss
 
@@ -102,10 +103,13 @@ def train(model, train_loader, val_loader, test_loader, config):
                 wandb.log(to_log)
 
             if save_ckpt and (iter_num + 1) % ckpt_interval == 0:
-                torch.save(model, os.path.join(ckpt_dir, f"iter_{iter_num}.pt"))
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(ckpt_dir, f"iter_{iter_num}.pt"),
+                )
 
             iter_num += 1
-        
+
         epoch += 1
 
 
