@@ -26,6 +26,31 @@ To render the scene in `scenes/teapot`, execute
 the image in `build/teapot.png`. To manually set the number of samples per 
 pixel, add the flag `--spp {DESIRED_SPP}`.
 
+## Training Models
+
+The model training code uses Hydra to manage configs and wandb for logging.
+Configs are stored in denoiser/config, and can be overridden with command line
+arguments. For example, we can train a model using:
+
+```
+python train.py \
+    device=mps \
+    logging.eval_interval=100 \
+    logging.log_interval=100 \
+    logging.ckpt_interval=1350 \
+    data.num_dataloader_workers=1 \
+    logging.save_ckpt=True
+```
+
+We can visualize the model's outputs using:
+
+```
+python eval.py \
+    device=mps \
+    data.num_dataloader_workers=1 \
+    logging.ckpt_dir=../checkpoints/rgb_baseline/05_04_2024-17_06_31/iter_1349.pt
+```
+
 ## Todo
 
 - Literature review.

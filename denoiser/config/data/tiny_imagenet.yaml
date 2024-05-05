@@ -1,0 +1,10 @@
+name: tiny_imagenet
+
+batch_size: 64
+
+test_frac: 0.1
+num_preprocessing_workers: 8
+num_dataloader_workers: 8
+seed: 0
+
+noise_level: 0.1
