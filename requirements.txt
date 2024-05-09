@@ -1,7 +1,11 @@
 torch
 torchvision
-PIL
+pillow
 matplotlib
+wandb
+tqdm
+hydra-core
+omegaconf
 
 OpenEXR
 opencv-python
