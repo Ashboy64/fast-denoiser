@@ -59,7 +59,6 @@ def train(model, train_loader, val_loader, test_loader, config):
         )
         os.makedirs(ckpt_dir, exist_ok=True)
 
-    loss_fn = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.optimizer.lr)
 
     epoch = 0
@@ -73,10 +72,9 @@ def train(model, train_loader, val_loader, test_loader, config):
                 break
 
             features = move_features_to_device(features, device)
-            targets = targets.to(device)
+            targets = move_features_to_device(targets, device)
 
-            outputs = model(features)
-            loss = loss_fn(outputs, targets)
+            loss = model.compute_loss(features, targets)
 
             optimizer.zero_grad()
             loss.backward()

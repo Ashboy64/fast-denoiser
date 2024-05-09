@@ -1,5 +1,4 @@
-import os
-import tqdm
+import time
 import hydra
 import matplotlib.pyplot as plt
 
@@ -46,6 +45,32 @@ def visualize_predictions(model, dataloader, device, num_images=10):
         show_image(denoised_image, noisy_image, original_image)
 
 
+def measure_throughput(
+    model, dataloader, device, num_batches=100, batch_size=64
+):
+    # Pre-fetch batches to avoid dataloader influencing throughput.
+    all_features = []
+    data_iter = iter(dataloader)
+    for _ in range(num_batches):
+        features = move_features_to_device(next(data_iter)[0], device)
+        all_features.append(features)
+
+    num_frames = num_batches * batch_size
+
+    # Run model.
+    outputs = []
+    start = time.time()
+
+    for features in all_features:
+        outputs.append(model(features))
+
+    time_taken = time.time() - start
+
+    time_for_4K = 4000 * time_taken / num_frames
+
+    print(f"{num_frames} done in {time_taken}. time_for_4K = {time_for_4K}")
+
+
 @hydra.main(config_path="config", config_name="baseline", version_base=None)
 @torch.inference_mode()
 def main(config):
@@ -57,7 +82,11 @@ def main(config):
     model.load_state_dict(torch.load(config.logging.ckpt_dir))
     model.eval()
 
-    visualize_predictions(model, val_loader, config.device)
+    # print(f"Visualizing predictions")
+    # visualize_predictions(model, val_loader, config.device)
+
+    print(f"Measuring throughput")
+    measure_throughput(model, val_loader, config.device, num_batches=100)
 
 
 if __name__ == "__main__":
