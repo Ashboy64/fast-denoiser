@@ -137,7 +137,7 @@ def seed(seed=0):
     torch.manual_seed(seed)
 
 
-@hydra.main(config_path="config", config_name="baseline", version_base=None)
+@hydra.main(config_path="config", config_name="tiny_imagenet", version_base=None)
 def main(config):
     seed(config.seed)
     setup_wandb(config)

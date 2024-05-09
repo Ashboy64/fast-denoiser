@@ -21,24 +21,7 @@ def register_dataset(name):
     return register_curr_dataset
 
 
-@register_dataset("pbrt")
-def load_pbrt_data(
-    folder_path,
-    batch_size,
-    train_frac,
-    val_frac,
-    test_frac,
-    num_dataloader_workers=8,
-    **kwargs
-):
-    
-    print(f"USING BATCH SIZE {batch_size}")
-
-    raw_dataset = PBRT_Dataset(folder_path)
-    split_datasets = torch.utils.data.random_split(
-        raw_dataset, lengths=[train_frac, val_frac, test_frac]
-    )
-
+def create_dataloaders(split_datasets, batch_size, num_dataloader_workers):
     train_loader = DataLoader(
         split_datasets[0],
         batch_size=batch_size,
@@ -61,6 +44,46 @@ def load_pbrt_data(
     return train_loader, val_train, test_loader
 
 
+@register_dataset("dummy_pbrt")
+def load_dummy_pbrt_data(
+    num_examples,
+    batch_size,
+    train_frac,
+    val_frac,
+    test_frac,
+    num_dataloader_workers=8,
+    **kwargs,
+):
+    raw_dataset = PBRT_DummyDataset(num_examples)
+    split_datasets = torch.utils.data.random_split(
+        raw_dataset, lengths=[train_frac, val_frac, test_frac]
+    )
+
+    return create_dataloaders(
+        split_datasets, batch_size, num_dataloader_workers
+    )
+
+
+@register_dataset("pbrt")
+def load_pbrt_data(
+    folder_path,
+    batch_size,
+    train_frac,
+    val_frac,
+    test_frac,
+    num_dataloader_workers=8,
+    **kwargs,
+):
+    raw_dataset = PBRT_Dataset(folder_path)
+    split_datasets = torch.utils.data.random_split(
+        raw_dataset, lengths=[train_frac, val_frac, test_frac]
+    )
+
+    return create_dataloaders(
+        split_datasets, batch_size, num_dataloader_workers
+    )
+
+
 @register_dataset("disk_gaussian_noise")
 def load_from_disk(
     folder_path,
@@ -70,33 +93,21 @@ def load_from_disk(
     val_frac,
     test_frac,
     num_dataloader_workers=8,
-    **kwargs
+    **kwargs,
 ):
     raw_dataset = SavedImagesDataset(folder_path)
     split_datasets = torch.utils.data.random_split(
         raw_dataset, lengths=[train_frac, val_frac, test_frac]
     )
 
-    train_loader = DataLoader(
-        NoiseWrapper(split_datasets[0], noise_level),
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_dataloader_workers,
-    )
-    val_train = DataLoader(
-        NoiseWrapper(split_datasets[1], noise_level),
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_dataloader_workers,
-    )
-    test_loader = DataLoader(
-        NoiseWrapper(split_datasets[2], noise_level),
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_dataloader_workers,
-    )
+    split_datasets = [
+        NoiseWrapper(split_dataset, noise_level)
+        for split_dataset in split_datasets
+    ]
 
-    return train_loader, val_train, test_loader
+    return create_dataloaders(
+        split_datasets, batch_size, num_dataloader_workers
+    )
 
 
 @register_dataset("tiny_imagenet")
@@ -107,7 +118,7 @@ def load_tiny_imagenet(
     noise_level=0.1,
     num_preprocessing_workers=8,
     num_dataloader_workers=8,
-    **kwargs
+    **kwargs,
 ):
     # Load from Huggingface and split train set into train and test.
     raw_tiny_imagenet = load_dataset("Maysee/tiny-imagenet")
@@ -132,27 +143,14 @@ def load_tiny_imagenet(
         num_proc=num_preprocessing_workers,
     )
 
-    # Wrap with NoiseWrapper and return dataloaders.
-    train_loader = DataLoader(
-        NoiseWrapper(tiny_imagenet["train"], noise_level),
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_dataloader_workers,
-    )
-    val_train = DataLoader(
-        NoiseWrapper(tiny_imagenet["val"], noise_level),
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_dataloader_workers,
-    )
-    test_loader = DataLoader(
-        NoiseWrapper(tiny_imagenet["test"], noise_level),
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_dataloader_workers,
-    )
+    split_datasets = [
+        NoiseWrapper(tiny_imagenet[split_name], noise_level)
+        for split_name in ["train", "val", "test"]
+    ]
 
-    return train_loader, val_train, test_loader
+    return create_dataloaders(
+        split_datasets, batch_size, num_dataloader_workers
+    )
 
 
 def load_data(data_config):

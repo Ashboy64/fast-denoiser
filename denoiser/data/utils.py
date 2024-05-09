@@ -1,4 +1,5 @@
 import os
+import tqdm
 from PIL import Image
 import matplotlib.pyplot as plt
 
@@ -8,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.utils as vutils
 
-from load_exr import *
+from data.load_exr import *
 
 
 PBRT_DATA_PATH = "data/pbrt-data/rendered_images"
@@ -121,6 +122,32 @@ class PBRT_Dataset(Dataset):
             # print(high_spp_features[key].shape)
 
         return low_spp_features, high_spp_features
+
+
+class PBRT_DummyDataset(Dataset):
+    def __init__(self, num_examples=4000) -> None:
+        super().__init__()
+
+        self.num_examples = num_examples
+        self.low_spp_samples = []
+        self.high_spp_samples = []
+
+        print("GENERATING DUMMY PBRT DATA")
+
+        channel_info = get_gbuffer_feature_metadata()
+        for _ in tqdm.trange(num_examples):
+            sample = {}
+            for key in channel_info:
+                num_channels = channel_info[key]
+                sample[key] = torch.randn((num_channels, 64, 64))
+            self.low_spp_samples.append(sample)
+            self.high_spp_samples.append(sample)
+
+    def __len__(self):
+        return self.num_examples
+
+    def __getitem__(self, index):
+        return self.low_spp_samples[index], self.high_spp_samples[index]
 
 
 def show_images(dataloader, num_images=6):

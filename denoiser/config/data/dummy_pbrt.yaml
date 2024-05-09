@@ -1,0 +1,10 @@
+name: dummy_pbrt
+
+num_examples: 5000
+batch_size: 64
+
+train_frac: 0.8
+val_frac: 0.1
+test_frac: 0.1
+
+num_dataloader_workers: 8

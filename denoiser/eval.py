@@ -48,6 +48,9 @@ def visualize_predictions(model, dataloader, device, num_images=10):
 def measure_throughput(
     model, dataloader, device, num_batches=100, batch_size=64
 ):
+    num_batches = min(len(dataloader), batch_size)
+    print(f"MEASURING THROUGHPUT WITH {num_batches} BATCHES.")
+
     # Pre-fetch batches to avoid dataloader influencing throughput.
     all_features = []
     data_iter = iter(dataloader)
@@ -58,11 +61,10 @@ def measure_throughput(
     num_frames = num_batches * batch_size
 
     # Run model.
-    outputs = []
     start = time.time()
 
     for features in all_features:
-        outputs.append(model(features))
+        model(features)
 
     time_taken = time.time() - start
 
@@ -71,12 +73,14 @@ def measure_throughput(
     print(f"{num_frames} done in {time_taken}. time_for_4K = {time_for_4K}")
 
 
-@hydra.main(config_path="config", config_name="baseline", version_base=None)
+@hydra.main(
+    config_path="config", config_name="tiny_imagenet", version_base=None
+)
 @torch.inference_mode()
 def main(config):
     seed(config.seed)
 
-    _, val_loader, test_loader = load_data(config.data)
+    train_loader, val_loader, test_loader = load_data(config.data)
 
     model = load_model(config.model).to(config.device)
     model.load_state_dict(torch.load(config.logging.ckpt_dir))
@@ -86,7 +90,13 @@ def main(config):
     # visualize_predictions(model, val_loader, config.device)
 
     print(f"Measuring throughput")
-    measure_throughput(model, val_loader, config.device, num_batches=100)
+    measure_throughput(
+        model,
+        train_loader,
+        config.device,
+        num_batches=100,
+        batch_size=config.data.batch_size,
+    )
 
 
 if __name__ == "__main__":

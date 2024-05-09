@@ -5,14 +5,23 @@ import torch.nn.functional as F
 from models.utils import register_model
 
 
-@register_model("rgb_unet")
-class RGB_UnetDenoisingCNN(nn.Module):
-    def __init__(self, **kwargs):
-        super(RGB_UnetDenoisingCNN, self).__init__()
+@register_model("full_features_unet")
+class FullFeatures_UnetDenoisingCNN(nn.Module):
+    def __init__(self, features_to_use, **kwargs):
+        """
+        features_to_use: Dict mapping {feature_name : num_channels}.
+            Eg: {"rgb": 3, "depth_map": 1, "surface_normals" : 3}.
+        """
+        super(FullFeatures_UnetDenoisingCNN, self).__init__()
+
+        self.features_to_use = features_to_use
+        self.num_input_channels = sum(features_to_use.values())
 
         # Encoder (downsampling)
         self.down_conv1 = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(
+                self.num_input_channels, 32, kernel_size=3, stride=1, padding=1
+            ),
             nn.ReLU(),
             nn.BatchNorm2d(32),
             nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1),
@@ -48,7 +57,10 @@ class RGB_UnetDenoisingCNN(nn.Module):
         self.loss_fn = nn.MSELoss()
 
     def forward(self, x):
-        x = x["rgb"]
+        x = torch.concat(
+            [x[feature_name] for feature_name in self.features_to_use], dim=1
+        )
+
         # Encoder
         x1 = self.down_conv1(x)
         x2 = self.down_conv2(x1)
@@ -67,7 +79,7 @@ class RGB_UnetDenoisingCNN(nn.Module):
 # Check the model
 if __name__ == "__main__":
     # Initialize model
-    model = RGB_UnetDenoisingCNN()
+    model = FullFeatures_UnetDenoisingCNN()
 
     # Generate a dummy input (batch size, channels, height, width)
     dummy_input = torch.randn(1, 3, 64, 64)

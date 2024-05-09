@@ -49,6 +49,20 @@ def pack_into_numpy(
     return np.stack(output_arrays)
 
 
+def get_gbuffer_feature_metadata():
+    return {
+        "rgb": 3,
+        "albedo": 3,
+        "position": 3,
+        "surface_coords": 2,
+        "grad_camera_depth": 2,
+        "surface_normals": 3,
+        "shading_normals": 3,
+        "rgb_sample_variance": 3,
+        "rgb_relative_sample_variance": 3,
+    }
+
+
 def read_gbufferfilm_exr(filepath, dtype=np.float32):
     """GBufferFilm fields are described in https://pbrt.org/users-guide-v4."""
 
