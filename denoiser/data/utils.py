@@ -8,6 +8,11 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.utils as vutils
 
+from load_exr import *
+
+
+PBRT_DATA_PATH = "data/pbrt-data/rendered_images"
+
 
 def move_features_to_device(features, device):
     for key in features:
@@ -84,7 +89,38 @@ class NoiseWrapper(Dataset):
         target_image = self.target_transform(features["rgb"])
         features["rgb"] = self.input_transform(features["rgb"])
 
-        return features, target_image
+        return features, {"rgb": target_image}
+
+
+class PBRT_Dataset(Dataset):
+    def __init__(self, folder_path=PBRT_DATA_PATH) -> None:
+        super().__init__()
+
+        self.folder_path = folder_path
+        self.num_examples = len(os.listdir(folder_path)) // 2
+
+    def __len__(self):
+        return self.num_examples
+
+    def __getitem__(self, index):
+        low_spp_name = f"random_camera_{index + 1}_low.exr"
+        low_spp_path = os.path.join(self.folder_path, low_spp_name)
+
+        high_spp_name = f"random_camera_{index + 1}_high.exr"
+        high_spp_path = os.path.join(self.folder_path, high_spp_name)
+
+        low_spp_features = read_gbufferfilm_exr(low_spp_path)
+        high_spp_features = read_gbufferfilm_exr(high_spp_path)
+
+        for key in low_spp_features:
+            low_spp_features[key] = torch.tensor(low_spp_features[key])
+            # print(low_spp_features[key].shape)
+
+        for key in high_spp_features:
+            high_spp_features[key] = torch.tensor(high_spp_features[key])
+            # print(high_spp_features[key].shape)
+
+        return low_spp_features, high_spp_features
 
 
 def show_images(dataloader, num_images=6):
@@ -92,16 +128,20 @@ def show_images(dataloader, num_images=6):
     data_iter = iter(dataloader)
     features, targets = next(data_iter)
 
-    images = []
+    # print(features["rgb"].shape)
+
+    input_images = []
+    target_images = []
     for idx in range(num_images):
-        images.append(features["rgb"][idx])
+        input_images.append(features["rgb"][idx])
+        target_images.append(targets["rgb"][idx])
 
     # Convert tensors to grid of images
     input_grid = vutils.make_grid(
-        images[:num_images], nrow=3, normalize=True, scale_each=True
+        input_images[:num_images], nrow=3, normalize=True, scale_each=True
     )
     target_grid = vutils.make_grid(
-        targets[:num_images], nrow=3, normalize=True, scale_each=True
+        target_images[:num_images], nrow=3, normalize=True, scale_each=True
     )
 
     # Plotting

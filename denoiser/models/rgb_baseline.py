@@ -39,11 +39,16 @@ class RGB_BaselineDenoisingCNN(nn.Module):
             nn.Sigmoid(),
         )
 
+        self.loss_fn = nn.MSELoss()
+
     def forward(self, x):
         x = x["rgb"]
         x = self.encoder(x)
         x = self.decoder(x)
         return x
+
+    def compute_loss(self, features, targets):
+        return self.loss_fn(self.forward(features), targets["rgb"])
 
 
 # Check the model
