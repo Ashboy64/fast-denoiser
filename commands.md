@@ -1,3 +1,20 @@
+## Render Watercolor
+
+
+Run from inside build directory.
+
+Regular pbrt:
+
+```
+./pbrt ../../scenes/watercolor/watercolor/camera-1.pbrt --outfile watercolor_camera_1.exr --spp 100
+```
+
+Multiview pbrt test:
+
+```
+./pbrt_multiview ../../scenes/watercolor/watercolor/camera-1.pbrt --outfile watercolor.exr --spp 100
+```
+
 ## Train Models
 
 Train baseline RGB denoiser:

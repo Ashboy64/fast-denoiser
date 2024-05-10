@@ -164,6 +164,17 @@ def read_depth_exr_file(filepath):
     return depth_map
 
 
+def visualize_exr_images(filepaths):
+    for filepath in filepaths:
+        img = cv.imread(
+            filepath,
+            cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH,
+        )
+
+        cv.imshow("filepath", img)
+        cv.waitKey(0)
+
+
 def load_teapot():
     img_1k_spp = cv.imread(
         "test-images/watercolor/camera_1-100_spp.exr",

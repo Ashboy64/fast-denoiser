@@ -966,6 +966,23 @@ add_sanitizers (pbrt_exe)
 set_property (TARGET pbrt_exe PROPERTY FOLDER "cmd")
 
 ######################
+# Multiview renderer
+
+add_executable (pbrt_multiview_exe src/pbrt/cmd/pbrt_multiview.cpp)
+add_executable (pbrt::pbrt_multiview_exe ALIAS pbrt_multiview_exe)
+
+target_compile_definitions (pbrt_multiview_exe PRIVATE ${PBRT_DEFINITIONS})
+target_compile_options (pbrt_multiview_exe PRIVATE ${PBRT_CXX_FLAGS})
+target_include_directories (pbrt_multiview_exe PRIVATE src src/ext)
+target_link_libraries (pbrt_multiview_exe PRIVATE ${ALL_PBRT_LIBS} pbrt_opt pbrt_warnings)
+
+set_target_properties (pbrt_multiview_exe PROPERTIES OUTPUT_NAME pbrt_multiview)
+
+add_sanitizers (pbrt_multiview_exe)
+
+set_property (TARGET pbrt_multiview_exe PROPERTY FOLDER "cmd")
+
+######################
 # imgtool
 
 add_executable (imgtool src/pbrt/cmd/imgtool.cpp)
@@ -1100,6 +1117,7 @@ set_property (TARGET pbrt_test PROPERTY FOLDER "cmd")
 
 install (TARGETS
   pbrt_exe
+  pbrt_multiview_exe
   imgtool
   pspec
   plytool

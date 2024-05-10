@@ -2,6 +2,8 @@
 // The pbrt source code is licensed under the Apache License, Version 2.0.
 // SPDX: Apache-2.0
 
+#include <iostream>
+
 #include <pbrt/cpu/render.h>
 
 #include <pbrt/cameras.h>
@@ -21,9 +23,10 @@
 
 namespace pbrt {
 
-void RenderCPU(BasicScene &parsedScene) {
-    Allocator alloc;
-    ThreadLocal<Allocator> threadAllocators([]() { return Allocator(); });
+SceneCache SetupScene(BasicScene &parsedScene) {
+    Camera camera = parsedScene.GetCamera();
+    Film film = camera.GetFilm();
+    Sampler sampler = parsedScene.GetSampler();
 
     // Create media first (so have them for the camera...)
     std::map<std::string, Medium> media = parsedScene.CreateMedia();
@@ -47,14 +50,21 @@ void RenderCPU(BasicScene &parsedScene) {
     Primitive accel = parsedScene.CreateAggregate(textures, shapeIndexToAreaLights, media,
                                                   namedMaterials, materials);
 
+    return {media, lights, namedMaterials, materials, accel};
+}
+
+void RenderCPU(BasicScene &parsedScene, SceneCache &scene_cache) {
+    Allocator alloc;
+    ThreadLocal<Allocator> threadAllocators([]() { return Allocator(); });
+
     Camera camera = parsedScene.GetCamera();
     Film film = camera.GetFilm();
     Sampler sampler = parsedScene.GetSampler();
 
     // Integrator
     LOG_VERBOSE("Starting to create integrator");
-    std::unique_ptr<Integrator> integrator(
-        parsedScene.CreateIntegrator(camera, sampler, accel, lights));
+    std::unique_ptr<Integrator> integrator(parsedScene.CreateIntegrator(
+        camera, sampler, scene_cache.accel, scene_cache.lights));
     LOG_VERBOSE("Finished creating integrator");
 
     // Helpful warnings
@@ -74,8 +84,8 @@ void RenderCPU(BasicScene &parsedScene) {
                 "\"bdpt\", or \"mlt\".",
                 parsedScene.integrator.name);
 
-    bool haveLights = !lights.empty();
-    for (const auto &m : media)
+    bool haveLights = !scene_cache.lights.empty();
+    for (const auto &m : scene_cache.media)
         haveLights |= m.second.IsEmissive();
 
     if (!haveLights && parsedScene.integrator.name != "ambientocclusion" &&
@@ -89,9 +99,9 @@ void RenderCPU(BasicScene &parsedScene) {
                 parsedScene.integrator.name);
 
     bool haveSubsurface = false;
-    for (pbrt::Material mtl : materials)
+    for (pbrt::Material mtl : scene_cache.materials)
         haveSubsurface |= mtl && mtl.HasSubsurfaceScattering();
-    for (const auto &namedMtl : namedMaterials)
+    for (const auto &namedMtl : scene_cache.namedMaterials)
         haveSubsurface |= namedMtl.second && namedMtl.second.HasSubsurfaceScattering();
 
     if (haveSubsurface && parsedScene.integrator.name != "volpath")
@@ -117,7 +127,8 @@ void RenderCPU(BasicScene &parsedScene) {
         int depth = 1;
         Ray ray = cr->ray;
         while (true) {
-            pstd::optional<ShapeIntersection> isect = accel.Intersect(ray, Infinity);
+            pstd::optional<ShapeIntersection> isect =
+                scene_cache.accel.Intersect(ray, Infinity);
             if (!isect) {
                 if (depth == 1)
                     ErrorExit("No geometry visible at specified pixel.");
@@ -137,7 +148,7 @@ void RenderCPU(BasicScene &parsedScene) {
                 Printf("Distance from camera: %f\n", Distance(intr.p(), cr->ray.o));
 
                 bool isNamed = false;
-                for (const auto &mtl : namedMaterials)
+                for (const auto &mtl : scene_cache.namedMaterials)
                     if (mtl.second == intr.material) {
                         Printf("Named material: %s\n\n", mtl.first);
                         isNamed = true;
@@ -161,7 +172,17 @@ void RenderCPU(BasicScene &parsedScene) {
     LOG_VERBOSE("Memory used after rendering: %s", GetCurrentRSS());
 
     PtexTextureBase::ReportStats();
-    ImageTextureBase::ClearCache();
+}
+
+void RenderCPU(BasicScene &parsedScene, bool cleanup) {
+    SceneCache scene_cache = SetupScene(parsedScene);
+
+    RenderCPU(parsedScene, scene_cache);
+
+    if (cleanup) {
+        LOG_VERBOSE("CLEANUP TRUE");
+        ImageTextureBase::ClearCache();
+    }
 }
 
 }  // namespace pbrt

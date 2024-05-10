@@ -206,7 +206,9 @@ class FilmBase {
     Filter GetFilter() const { return filter; }
     PBRT_CPU_GPU
     const PixelSensor *GetPixelSensor() const { return sensor; }
+
     std::string GetFilename() const { return filename; }
+    void SetFilename(std::string new_filename) { filename = new_filename; }
 
     PBRT_CPU_GPU
     SampledWavelengths SampleWavelengths(Float u) const {

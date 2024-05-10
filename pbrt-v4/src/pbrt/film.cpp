@@ -62,6 +62,11 @@ std::string Film::GetFilename() const {
     return DispatchCPU(get);
 }
 
+void Film::SetFilename(std::string new_filename) {
+    auto get = [&](auto ptr) { return ptr->SetFilename(new_filename); };
+    return DispatchCPU(get);
+}
+
 // FilmBaseParameters Method Definitions
 FilmBaseParameters::FilmBaseParameters(const ParameterDictionary &parameters,
                                        Filter filter, const PixelSensor *sensor,

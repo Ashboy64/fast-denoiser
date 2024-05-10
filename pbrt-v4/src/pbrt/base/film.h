@@ -56,7 +56,9 @@ class Film : public TaggedPointer<RGBFilm, GBufferFilm, SpectralFilm> {
 
     PBRT_CPU_GPU inline Filter GetFilter() const;
     PBRT_CPU_GPU inline const PixelSensor *GetPixelSensor() const;
+
     std::string GetFilename() const;
+    void SetFilename(std::string new_filename);
 
     using TaggedPointer::TaggedPointer;
 

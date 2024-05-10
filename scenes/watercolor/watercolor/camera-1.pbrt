@@ -19,6 +19,5 @@ Camera "perspective"
 WorldBegin
 
 Include "lights-no-windowglass.pbrt"
-# Include "lights-with-windowglass.pbrt"
 Include "materials.pbrt"
 Include "geometry.pbrt"
