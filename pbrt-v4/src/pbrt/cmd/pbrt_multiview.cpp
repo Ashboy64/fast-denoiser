@@ -131,20 +131,23 @@ std::vector<Float> SampleCameraPosition() {
     int num_reference_positions = REFERENCE_CAMERA_POSITIONS.size();
 
     int reference_idx_1 = rand() % num_reference_positions;
-    int shift_from_1 = rand() % (num_reference_positions - 1) + 1;
-    int reference_idx_2 = (reference_idx_1 + shift_from_1) % num_reference_positions;
 
-    const std::vector<Float> &reference_1 = REFERENCE_CAMERA_POSITIONS[reference_idx_1];
-    const std::vector<Float> &reference_2 = REFERENCE_CAMERA_POSITIONS[reference_idx_2];
+    return REFERENCE_CAMERA_POSITIONS[reference_idx_1];
+    
+    // int shift_from_1 = rand() % (num_reference_positions - 1) + 1;
+    // int reference_idx_2 = (reference_idx_1 + shift_from_1) % num_reference_positions;
 
-    float coeff = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    // const std::vector<Float> &reference_1 = REFERENCE_CAMERA_POSITIONS[reference_idx_1];
+    // const std::vector<Float> &reference_2 = REFERENCE_CAMERA_POSITIONS[reference_idx_2];
 
-    std::vector<Float> sampled_pos;
-    for (int i = 0; i < reference_1.size(); i++) {
-        sampled_pos.push_back(coeff * reference_1[i] + (1. - coeff) * reference_2[i]);
-    }
+    // float coeff = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 
-    return sampled_pos;
+    // std::vector<Float> sampled_pos;
+    // for (int i = 0; i < reference_1.size(); i++) {
+    //     sampled_pos.push_back(coeff * reference_1[i] + (1. - coeff) * reference_2[i]);
+    // }
+
+    // return sampled_pos;
 }
 
 void ResetFilm(Film film) {
@@ -179,12 +182,8 @@ void RunMultiviewPBRT(std::vector<std::string> &filenames, int num_views_to_rend
     // Initial setup for scene done once for all camera views.
     SceneCache scene_cache = SetupScene(scene);
 
-    // Get camera and film objects that are modified between different views.
-    Camera camera = scene.GetCamera();
-    Film film = camera.GetFilm();
-
     // Get the directory and base filename we will save outputs to.
-    std::string original_filepath = film.GetFilename();
+    std::string original_filepath = scene.GetCamera().GetFilm().GetFilename();
 
     auto [dir_path, original_filename] = SplitFilepath(original_filepath);
 
@@ -192,16 +191,19 @@ void RunMultiviewPBRT(std::vector<std::string> &filenames, int num_views_to_rend
     for (int view_idx = 0; view_idx < num_views_to_render; view_idx++) {
         const std::vector<float> camera_pos = SampleCameraPosition();
 
-        ResetFilm(film);
+        builder.LookAt(camera_pos[0], camera_pos[1], camera_pos[2], camera_pos[3],
+                       camera_pos[4], camera_pos[5], camera_pos[6], camera_pos[7],
+                       camera_pos[8], {});
+
+        builder.SetForced(true);
+        builder.UpdateCameraTransform();
+        builder.WorldBegin({});
+        builder.SetForced(false);
 
         std::string new_filename =
             "idx_" + std::to_string(view_idx) + "-" + original_filename;
         std::string new_filepath = dir_path + "/" + new_filename;
-        film.SetFilename(new_filepath);
-
-        builder.LookAt(camera_pos[0], camera_pos[1], camera_pos[2], camera_pos[3],
-                       camera_pos[4], camera_pos[5], camera_pos[6], camera_pos[7],
-                       camera_pos[8], {});
+        scene.GetCamera().GetFilm().SetFilename(new_filepath);
 
         // Render the scene
         if (Options->useGPU || Options->wavefront) {

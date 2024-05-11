@@ -435,6 +435,11 @@ class BasicSceneBuilder : public ParserTarget {
 
     std::string ToString() const;
 
+    // To force enable WorldBegin when changing camera views.
+    void SetForced(bool forced);
+
+    void UpdateCameraTransform();
+
   private:
     // BasicSceneBuilder::GraphicsState Definition
     struct GraphicsState {
@@ -517,6 +522,9 @@ class BasicSceneBuilder : public ParserTarget {
     SceneEntity sampler;
     SceneEntity film, integrator, filter, accelerator;
     CameraSceneEntity camera;
+
+    // To force enable WorldBegin when changing camera views.
+    bool forced;
 };
 
 }  // namespace pbrt

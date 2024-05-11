@@ -81,7 +81,7 @@ STAT_COUNTER("Scene/Object instances used", nObjectInstancesUsed);
 
 // BasicSceneBuilder Method Definitions
 BasicSceneBuilder::BasicSceneBuilder(BasicScene *scene)
-    : scene(scene)
+    : scene(scene), forced(false)
 #ifdef PBRT_BUILD_GPU_RENDERER
       ,
       transformCache(Options->useGPU ? Allocator(&CUDATrackedMemoryResource::singleton)
@@ -155,6 +155,19 @@ void BasicSceneBuilder::Camera(const std::string &name, ParsedParameterVector pa
                                graphicsState.currentOutsideMedium);
 }
 
+void BasicSceneBuilder::UpdateCameraTransform() {
+    TransformSet cameraFromWorld = graphicsState.ctm;
+    TransformSet worldFromCamera = Inverse(graphicsState.ctm);
+    namedCoordinateSystems["camera"] = Inverse(cameraFromWorld);
+
+    CameraTransform cameraTransform(
+        AnimatedTransform(worldFromCamera[0], graphicsState.transformStartTime,
+                          worldFromCamera[1], graphicsState.transformEndTime));
+    renderFromWorld = cameraTransform.RenderFromWorld();
+
+    camera.cameraTransform = cameraTransform;
+}
+
 void BasicSceneBuilder::AttributeBegin(FileLoc loc) {
     VERIFY_WORLD("AttributeBegin");
     pushedGraphicsStates.push_back(graphicsState);
@@ -220,8 +233,15 @@ void BasicSceneBuilder::Sampler(const std::string &name, ParsedParameterVector p
     sampler = SceneEntity(name, std::move(dict), loc);
 }
 
+void BasicSceneBuilder::SetForced(bool forced) {
+    this->forced = forced;
+}
+
 void BasicSceneBuilder::WorldBegin(FileLoc loc) {
-    VERIFY_OPTIONS("WorldBegin");
+    if (!forced) {
+        VERIFY_OPTIONS("WorldBegin");
+    }
+
     // Reset graphics state for _WorldBegin_
     currentBlock = BlockState::WorldBlock;
     for (int i = 0; i < MaxTransforms; ++i)
@@ -763,6 +783,9 @@ void BasicScene::SetOptions(SceneEntity filter, SceneEntity film,
     this->film = Film::Create(film.name, film.parameters, exposureTime,
                               camera.cameraTransform, filt, &film.loc, alloc);
     LOG_VERBOSE("Finished creating filter and film");
+
+    LOG_VERBOSE("IN SetOptions, CameraTransform is ");
+    LOG_VERBOSE(camera.cameraTransform.ToString().c_str());
 
     // Enqueue asynchronous job to create sampler
     samplerJob = RunAsync([sampler, this]() {
