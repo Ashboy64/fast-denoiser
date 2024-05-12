@@ -24,10 +24,6 @@
 namespace pbrt {
 
 SceneCache SetupScene(BasicScene &parsedScene) {
-    Camera camera = parsedScene.GetCamera();
-    Film film = camera.GetFilm();
-    Sampler sampler = parsedScene.GetSampler();
-
     // Create media first (so have them for the camera...)
     std::map<std::string, Medium> media = parsedScene.CreateMedia();
 

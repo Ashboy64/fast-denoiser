@@ -281,11 +281,14 @@ class BasicScene {
 
     Camera GetCamera() {
         cameraJobMutex.lock();
-        while (!camera) {
-            pstd::optional<Camera> c = cameraJob->TryGetResult(&cameraJobMutex);
-            if (c)
-                camera = *c;
-        }
+
+        camera = cameraJob->GetResult();
+
+        // while (!camera) {
+        //     pstd::optional<Camera> c = cameraJob->TryGetResult(&cameraJobMutex);
+        //     if (c)
+        //         camera = *c;
+        // }
         cameraJobMutex.unlock();
         LOG_VERBOSE("Retrieved Camera from future");
         return camera;
@@ -325,6 +328,10 @@ class BasicScene {
                                                  std::vector<Light> lights) const;
 
     NamedTextures CreateTextures();
+
+    // Waits for cameraJob to complete; used in multiview renderer to wait for
+    // new camera with updated position to be created before rendering.
+    // void WaitForCameraJob();
 
     // BasicScene Public Members
     SceneEntity integrator, accelerator;
@@ -435,9 +442,12 @@ class BasicSceneBuilder : public ParserTarget {
 
     std::string ToString() const;
 
-    // To force enable WorldBegin when changing camera views.
+    // ---- Multiview rendering functions ----
+
+    // Disable parsing checks in WorldBegin().
     void SetForced(bool forced);
 
+    // Update camera transform after calling LookAt().
     void UpdateCameraTransform();
 
   private:

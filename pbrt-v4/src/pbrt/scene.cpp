@@ -81,7 +81,8 @@ STAT_COUNTER("Scene/Object instances used", nObjectInstancesUsed);
 
 // BasicSceneBuilder Method Definitions
 BasicSceneBuilder::BasicSceneBuilder(BasicScene *scene)
-    : scene(scene), forced(false)
+    : scene(scene),
+      forced(false)
 #ifdef PBRT_BUILD_GPU_RENDERER
       ,
       transformCache(Options->useGPU ? Allocator(&CUDATrackedMemoryResource::singleton)
@@ -140,7 +141,9 @@ void BasicSceneBuilder::Camera(const std::string &name, ParsedParameterVector pa
                                FileLoc loc) {
     ParameterDictionary dict(std::move(params), graphicsState.colorSpace);
 
-    VERIFY_OPTIONS("Camera");
+    if (!forced) {
+        VERIFY_OPTIONS("Camera");
+    }
 
     TransformSet cameraFromWorld = graphicsState.ctm;
     TransformSet worldFromCamera = Inverse(graphicsState.ctm);

@@ -104,16 +104,6 @@ Multiview options:
     exit(msg.empty() ? 0 : 1);
 }
 
-// camera_params=(
-//   "221.141205 122.646004 2.43404675 220.141205 122.646004 2.43404675 0 1 0 43.6028175"
-//   "-2.70786691 85.4769516 240.523529 -3.30121756 85.4485712 239.718582 -0.00141029898
-//   0.999997199 -0.00191321515 22.6198654" "247.908615 63.4503365 125.32412
-//   246.917603 63.4553365 125.1903 0 1 0 20.4079475" "246.201401 177.455338 38.538826
-//   245.696762 176.740402 38.0548897 -0.516015887 0.699185967 -0.494840115 22.6198654"
-//   "231.791519 163.256424 77.3447189 231.243347 162.608231 76.8161774 -0.466618747
-//   0.76148057 -0.44990477 22.6198654"
-// )
-
 const std::vector<std::vector<Float>> REFERENCE_CAMERA_POSITIONS = {
     {221.141205, 122.646004, 2.43404675, 220.141205, 122.646004, 2.43404675, 0, 1, 0,
      43.6028175},
@@ -125,6 +115,9 @@ const std::vector<std::vector<Float>> REFERENCE_CAMERA_POSITIONS = {
      0.699185967, -0.494840115, 22.6198654},
     {231.791519, 163.256424, 77.3447189, 231.243347, 162.608231, 76.8161774, -0.466618747,
      0.76148057, -0.44990477, 22.6198654},
+    {730.19196, 130.06535, 168.48814, 729.2307, 130.03535, 168.21251, 0, 1, 0, 26.5},
+    {-2.70786691, 85.4769516, 240.523529, -3.30121756, 85.4485712, 239.718582,
+     -0.00141029898, 0.999997199, -0.00191321515, 22.6198654},
 };
 
 std::vector<Float> SampleCameraPosition() {
@@ -133,12 +126,13 @@ std::vector<Float> SampleCameraPosition() {
     int reference_idx_1 = rand() % num_reference_positions;
 
     return REFERENCE_CAMERA_POSITIONS[reference_idx_1];
-    
+
     // int shift_from_1 = rand() % (num_reference_positions - 1) + 1;
     // int reference_idx_2 = (reference_idx_1 + shift_from_1) % num_reference_positions;
 
-    // const std::vector<Float> &reference_1 = REFERENCE_CAMERA_POSITIONS[reference_idx_1];
-    // const std::vector<Float> &reference_2 = REFERENCE_CAMERA_POSITIONS[reference_idx_2];
+    // const std::vector<Float> &reference_1 =
+    // REFERENCE_CAMERA_POSITIONS[reference_idx_1]; const std::vector<Float> &reference_2
+    // = REFERENCE_CAMERA_POSITIONS[reference_idx_2];
 
     // float coeff = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 
@@ -191,15 +185,44 @@ void RunMultiviewPBRT(std::vector<std::string> &filenames, int num_views_to_rend
     for (int view_idx = 0; view_idx < num_views_to_render; view_idx++) {
         const std::vector<float> camera_pos = SampleCameraPosition();
 
+        // Disable parsing checks in the builder.
+        builder.SetForced(true);
+
+        // Update the camera position.
         builder.LookAt(camera_pos[0], camera_pos[1], camera_pos[2], camera_pos[3],
                        camera_pos[4], camera_pos[5], camera_pos[6], camera_pos[7],
                        camera_pos[8], {});
-
-        builder.SetForced(true);
         builder.UpdateCameraTransform();
+
+        // Update the camera parameters.
+        ParsedParameter fov_param({});
+        fov_param.type = "float";
+        fov_param.name = "fov";
+        fov_param.AddFloat(camera_pos[9]);
+
+        ParsedParameterVector camera_params;
+        camera_params.push_back(&fov_param);
+
+        // ParsedParameter focal_distance_param({});
+        // focal_distance_param.type = "float";
+        // focal_distance_param.name = "focaldistance";
+        // focal_distance_param.AddFloat(312);
+
+        // ParsedParameter lens_radius_param({});
+        // lens_radius_param.type = "float";
+        // lens_radius_param.name = "lensradius";
+        // lens_radius_param.AddFloat(0.8);
+
+        // camera_params.push_back(&focal_distance_param);
+        // camera_params.push_back(&lens_radius_param);
+
+        builder.Camera("perspective", camera_params, {});
+
+        // Push updates in builder to the scene and create new camera.
         builder.WorldBegin({});
         builder.SetForced(false);
 
+        // Update the filepath where the rendered image will be saved.
         std::string new_filename =
             "idx_" + std::to_string(view_idx) + "-" + original_filename;
         std::string new_filepath = dir_path + "/" + new_filename;
