@@ -1,0 +1,34 @@
+[submodule "pbrt-v4/src/ext/zlib"]
+	path = pbrt-v4/src/ext/zlib
+	url = https://github.com/mitsuba-renderer/zlib.git
+[submodule "pbrt-v4/src/ext/ptex"]
+	path = pbrt-v4/src/ext/ptex
+	url = https://github.com/wdas/ptex.git
+[submodule "pbrt-v4/src/ext/double-conversion"]
+	path = pbrt-v4/src/ext/double-conversion
+	url = https://github.com/mmp/double-conversion.git
+[submodule "pbrt-v4/src/ext/stb"]
+	path = pbrt-v4/src/ext/stb
+	url = https://github.com/nothings/stb.git
+[submodule "pbrt-v4/src/ext/openexr"]
+	path = pbrt-v4/src/ext/openexr
+	url = https://github.com/mmp/openexr.git
+	branch = zlibstatic-export-workaround
+[submodule "pbrt-v4/src/ext/filesystem"]
+	path = pbrt-v4/src/ext/filesystem
+	url = https://github.com/wjakob/filesystem.git
+[submodule "pbrt-v4/src/ext/libdeflate"]
+	path = pbrt-v4/src/ext/libdeflate
+	url = https://github.com/mmp/libdeflate.git
+[submodule "pbrt-v4/src/ext/lodepng"]
+	path = pbrt-v4/src/ext/lodepng
+	url = https://github.com/JuliaStrings/utf8proc.git
+[submodule "pbrt-v4/src/ext/utf8proc"]
+	path = pbrt-v4/src/ext/utf8proc
+	url = https://github.com/JuliaStrings/utf8proc.git
+[submodule "pbrt-v4/src/ext/qoi"]
+	path = pbrt-v4/src/ext/qoi
+	url = https://github.com/phoboslab/qoi.git
+[submodule "pbrt-v4/src/ext/glfw"]
+	path = pbrt-v4/src/ext/glfw
+	url = https://github.com/glfw/glfw.git
