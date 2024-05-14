@@ -1,3 +1,0 @@
-[submodule "pbrt-v4/src/ext/openexr/OpenEXR"]
-	path = pbrt-v4/src/ext/openexr/OpenEXR
-	url = https://github.com/AcademySoftwareFoundation/openexr.git
