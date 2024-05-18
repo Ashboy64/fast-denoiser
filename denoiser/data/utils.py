@@ -105,10 +105,6 @@ class PBRT_Dataset(Dataset):
         self.num_examples = 0
         batch_dirs = [filename for filename in os.listdir(folder_path)
                       if os.path.isdir(folder_path + '/' + filename)]
-        print(folder_path)
-        print(os.listdir(folder_path))
-        print(batch_dirs)
-        print("HELLOOOOOO", len(batch_dirs))
         for batch_dir in batch_dirs:
             batch_path = folder_path + '/' + batch_dir
             filenames = os.listdir(batch_path)
@@ -117,7 +113,6 @@ class PBRT_Dataset(Dataset):
                 low_spp = filenames[i+1]
                 self.all_high_spp.append(batch_path + '/' + high_spp)
                 self.all_low_spp.append(batch_path + '/' + low_spp)
-                print("new sample, total =", self.num_examples + 1)
                 self.num_examples += 1
 
     def __len__(self):
