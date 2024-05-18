@@ -86,7 +86,6 @@ class NoiseWrapper(Dataset):
     def __getitem__(self, index):
         # Load an image from the file
         features = self.data_src[index]
-
         target_image = self.target_transform(features["rgb"])
         features["rgb"] = self.input_transform(features["rgb"])
 

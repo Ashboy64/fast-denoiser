@@ -34,7 +34,7 @@ arguments. For example, we can train a model using:
 
 ```
 python train.py \
-    device=mps \
+    device=cuda \
     logging.eval_interval=100 \
     logging.log_interval=100 \
     logging.ckpt_interval=1350 \

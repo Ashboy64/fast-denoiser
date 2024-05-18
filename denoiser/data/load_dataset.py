@@ -21,24 +21,28 @@ def register_dataset(name):
     return register_curr_dataset
 
 
-def create_dataloaders(split_datasets, batch_size, num_dataloader_workers):
+def create_dataloaders(split_datasets, batch_size, num_dataloader_workers, 
+                       pin_memory=True):
     train_loader = DataLoader(
         split_datasets[0],
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_dataloader_workers,
+        pin_memory=pin_memory
     )
     val_train = DataLoader(
         split_datasets[1],
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_dataloader_workers,
+        pin_memory=pin_memory
     )
     test_loader = DataLoader(
         split_datasets[2],
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_dataloader_workers,
+        pin_memory=pin_memory
     )
 
     return train_loader, val_train, test_loader
@@ -134,6 +138,8 @@ def load_tiny_imagenet(
 
     # Rename the "image" feature to "rgb", and "label" to "class".
     def rename_features(example):
+        if "label" not in example.keys():
+            return {"rgb": example["image"], "class": -1}
         return {"rgb": example["image"], "class": example["label"]}
 
     tiny_imagenet = tiny_imagenet.map(

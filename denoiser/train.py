@@ -22,7 +22,6 @@ def eval_model(model, dataloaders, device):
     print(f"EVALUATING MODEL")
     model.eval()
 
-    loss_fn = nn.MSELoss()
     losses = []
 
     for dataloader in dataloaders:
@@ -30,10 +29,9 @@ def eval_model(model, dataloaders, device):
 
         for features, targets in tqdm.tqdm(dataloader):
             features = move_features_to_device(features, device)
-            targets = targets.to(device)
+            targets = move_features_to_device(targets, device)
 
-            outputs = model(features)
-            running_loss += loss_fn(outputs, targets)
+            running_loss += model.compute_loss(features, targets)
 
         losses.append(running_loss / len(dataloader))
 
@@ -67,7 +65,7 @@ def train(model, train_loader, val_loader, test_loader, config):
     while iter_num < num_grad_steps:
         print(f"Epoch {epoch}")
 
-        for features, targets in tqdm.tqdm(train_loader):
+        for features, targets in train_loader:
             if iter_num == num_grad_steps:
                 break
 

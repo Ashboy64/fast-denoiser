@@ -6,6 +6,6 @@ wandb
 tqdm
 hydra-core
 omegaconf
-
 OpenEXR
 opencv-python
+datasets

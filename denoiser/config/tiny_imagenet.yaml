@@ -24,7 +24,7 @@ logging:
 
 wandb:
   mode: online
-  entity: aprao
+  entity: arao1
   project: fast-denoiser
   run_name_suffix: ""
 
