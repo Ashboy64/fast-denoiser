@@ -9,10 +9,12 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.utils as vutils
 
+import zipfile
+
 from data.load_exr import *
 
 
-PBRT_DATA_PATH = "data/pbrt-data/rendered_images"
+PBRT_DATA_PATH = "rendered_images"
 
 
 def move_features_to_device(features, device):
@@ -97,17 +99,33 @@ class PBRT_Dataset(Dataset):
         super().__init__()
 
         self.folder_path = folder_path
-        self.num_examples = len(os.listdir(folder_path)) // 2
+        self.all_high_spp = []
+        self.all_low_spp = []
+        self.num_examples = 0
+        batch_dirs = [filename for filename in os.listdir(folder_path)
+                      if os.path.isdir(folder_path + '/' + filename)]
+        print(folder_path)
+        print(os.listdir(folder_path))
+        print(batch_dirs)
+        print("HELLOOOOOO", len(batch_dirs))
+        for batch_dir in batch_dirs:
+            batch_path = folder_path + '/' + batch_dir
+            filenames = os.listdir(batch_path)
+            for i in range(0, len(filenames), 2):
+                high_spp = filenames[i]
+                low_spp = filenames[i+1]
+                self.all_high_spp.append(batch_path + '/' + high_spp)
+                self.all_low_spp.append(batch_path + '/' + low_spp)
+                print("new sample, total =", self.num_examples + 1)
+                self.num_examples += 1
 
     def __len__(self):
         return self.num_examples
 
     def __getitem__(self, index):
-        low_spp_name = f"random_camera_{index + 1}_low.exr"
-        low_spp_path = os.path.join(self.folder_path, low_spp_name)
+        low_spp_path = self.all_low_spp[index]
 
-        high_spp_name = f"random_camera_{index + 1}_high.exr"
-        high_spp_path = os.path.join(self.folder_path, high_spp_name)
+        high_spp_path = self.all_high_spp[index]
 
         low_spp_features = read_gbufferfilm_exr(low_spp_path)
         high_spp_features = read_gbufferfilm_exr(high_spp_path)
