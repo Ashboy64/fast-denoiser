@@ -78,7 +78,7 @@ def load_pbrt_data(
     num_dataloader_workers=8,
     **kwargs,
 ):
-    raw_dataset = PBRT_Dataset(folder_path)
+    raw_dataset = PBRT_Dataset()
     split_datasets = torch.utils.data.random_split(
         raw_dataset, lengths=[train_frac, val_frac, test_frac]
     )

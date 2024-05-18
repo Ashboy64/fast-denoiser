@@ -3,3 +3,4 @@
 .DS_Store
 __pycache__
 wandb
+rendered_images/unzipped
