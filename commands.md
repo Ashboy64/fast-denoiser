@@ -17,6 +17,39 @@ Multiview pbrt test:
 
 ## Train Models
 
+### PBRT
+
+Train full features UNET denoiser:
+
+```
+python train.py --config-name pbrt \
+    device=cuda \
+    logging.eval_interval=100 \
+    logging.log_interval=1 \
+    logging.ckpt_interval=100 \
+    data.num_dataloader_workers=1 \
+    logging.save_ckpt=False \
+    wandb.mode=disabled \
+    model=full_features_unet
+```
+
+Visualize predictions:
+
+```
+python eval.py --config-name pbrt \
+    device=cuda \
+    logging.eval_interval=100 \
+    logging.log_interval=1 \
+    logging.ckpt_interval=100 \
+    logging.ckpt_dir=../checkpoints/05_19_2024-06_04_07 \
+    data.num_dataloader_workers=1 \
+    logging.save_ckpt=False \
+    wandb.mode=disabled \
+    model=full_features_unet
+```
+
+### Tiny Imagenet
+
 Train baseline RGB denoiser:
 
 ```
@@ -27,20 +60,6 @@ python train.py \
     logging.ckpt_interval=1350 \
     data.num_dataloader_workers=1 \
     logging.save_ckpt=True
-```
-
-Train full features UNET denoiser:
-
-```
-python train.py \
-    device=mps \
-    logging.eval_interval=100 \
-    logging.log_interval=100 \
-    logging.ckpt_interval=1350 \
-    data.num_dataloader_workers=1 \
-    logging.save_ckpt=False \
-    wandb.mode=disabled \
-    model=full_features_unet
 ```
 
 ## Measure Throughput
