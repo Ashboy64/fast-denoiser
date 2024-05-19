@@ -1,7 +1,8 @@
 name: pbrt
 
-folder_path: ../rendered_images
+folder_path: ../rendered_images/unzipped
 
+device: cuda
 batch_size: 64
 
 train_frac: 0.8

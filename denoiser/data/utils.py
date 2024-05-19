@@ -4,17 +4,15 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 from torchvision import transforms
 import torchvision.utils as vutils
 
-import zipfile
-
 from data.load_exr import *
 
 
-PBRT_DATA_PATH = "rendered_images"
+PBRT_DATA_PATH = "../rendered_images/unzipped"
 
 
 def move_features_to_device(features, device):
@@ -95,43 +93,89 @@ class NoiseWrapper(Dataset):
 
 
 class PBRT_Dataset(Dataset):
-    def __init__(self, folder_path=PBRT_DATA_PATH) -> None:
+    def __init__(self, device, folder_path=PBRT_DATA_PATH) -> None:
         super().__init__()
 
         self.folder_path = folder_path
+
         self.all_high_spp = []
         self.all_low_spp = []
+
         self.num_examples = 0
-        batch_dirs = [filename for filename in os.listdir(folder_path)
-                      if os.path.isdir(folder_path + '/' + filename)]
+
+        # Get the unzipped folders containing images.
+        batch_dirs = [
+            filename
+            for filename in os.listdir(folder_path)
+            if os.path.isdir(folder_path + "/" + filename)
+        ]
+
+        processed_samples = set([])
+
+        print(f"PREPARING PBRT DATASET ON DEVICE {device}")
         for batch_dir in batch_dirs:
-            batch_path = folder_path + '/' + batch_dir
+            batch_path = os.path.join(folder_path, batch_dir)
             filenames = os.listdir(batch_path)
-            for i in range(0, len(filenames), 2):
-                high_spp = filenames[i]
-                low_spp = filenames[i+1]
-                self.all_high_spp.append(batch_path + '/' + high_spp)
-                self.all_low_spp.append(batch_path + '/' + low_spp)
+
+            for filename in tqdm.tqdm(filenames):
+                base_filename = filename.replace("_high.exr", "")
+                base_filename = base_filename.replace("_low.exr", "")
+
+                base_filepath = os.path.join(batch_dir, base_filename)
+                if base_filepath in processed_samples:
+                    continue
+                processed_samples.add(base_filepath)
+
+                high_spp_filename = base_filename + "_high.exr"
+                low_spp_filename = base_filename + "_low.exr"
+
+                if high_spp_filename not in filenames:
+                    print(f"CONTINUING ON {high_spp_filename} IN HIGH")
+                    continue
+
+                if low_spp_filename not in filenames:
+                    print(
+                        f"CONTINUING ON {low_spp_filename} IN LOWrandom_camera_186_high.exr"
+                    )
+                    continue
+
+                high_spp_filepath = os.path.join(batch_path, high_spp_filename)
+                low_spp_filepath = os.path.join(batch_path, low_spp_filename)
+
+                high_spp_features = read_gbufferfilm_exr(high_spp_filepath)
+                low_spp_features = read_gbufferfilm_exr(low_spp_filepath)
+
+                # for key in high_spp_features:
+                #     high_spp_features[key] = torch.tensor(
+                #         high_spp_features[key], device=device
+                #     )
+
+                # for key in low_spp_features:
+                #     low_spp_features[key] = torch.tensor(
+                #         low_spp_features[key], device=device
+                #     )
+
+                self.all_high_spp.append(high_spp_features)
+                self.all_low_spp.append(low_spp_features)
                 self.num_examples += 1
+            
+            # break
 
     def __len__(self):
         return self.num_examples
 
-    def __getitem__(self, index):
-        low_spp_path = self.all_low_spp[index]
+    def __getitem__(self, idx):
+        high_spp_features = self.all_high_spp[idx]
+        low_spp_features = self.all_low_spp[idx]
 
-        high_spp_path = self.all_high_spp[index]
-
-        low_spp_features = read_gbufferfilm_exr(low_spp_path)
-        high_spp_features = read_gbufferfilm_exr(high_spp_path)
-
-        for key in low_spp_features:
-            low_spp_features[key] = torch.tensor(low_spp_features[key])
-            # print(low_spp_features[key].shape)
+        # high_spp_features = read_gbufferfilm_exr(high_spp_filepath)
+        # low_spp_features = read_gbufferfilm_exr(low_spp_filepath)
 
         for key in high_spp_features:
             high_spp_features[key] = torch.tensor(high_spp_features[key])
-            # print(high_spp_features[key].shape)
+
+        for key in low_spp_features:
+            low_spp_features[key] = torch.tensor(low_spp_features[key])
 
         return low_spp_features, high_spp_features
 

@@ -5,6 +5,7 @@ sys.path.append("..")
 from omegaconf import OmegaConf
 
 import torch
+from torch.utils.data import DataLoader
 
 from datasets import load_dataset
 from data.utils import *
@@ -75,10 +76,11 @@ def load_pbrt_data(
     train_frac,
     val_frac,
     test_frac,
+    device,
     num_dataloader_workers=8,
     **kwargs,
 ):
-    raw_dataset = PBRT_Dataset()
+    raw_dataset = PBRT_Dataset(device, folder_path)
     split_datasets = torch.utils.data.random_split(
         raw_dataset, lengths=[train_frac, val_frac, test_frac]
     )

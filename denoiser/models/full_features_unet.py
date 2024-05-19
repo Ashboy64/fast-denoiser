@@ -17,6 +17,8 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
         self.features_to_use = features_to_use
         self.num_input_channels = sum(features_to_use.values())
 
+        self.batch_norm = nn.BatchNorm2d(self.num_input_channels)
+
         # Encoder (downsampling)
         self.down_conv1 = nn.Sequential(
             nn.Conv2d(
@@ -61,6 +63,8 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
             [x[feature_name] for feature_name in self.features_to_use], dim=1
         )
 
+        x = self.batch_norm(x)
+
         # Encoder
         x1 = self.down_conv1(x)
         x2 = self.down_conv2(x1)
@@ -73,7 +77,11 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
         return x5
 
     def compute_loss(self, features, targets):
-        return self.loss_fn(self.forward(features), targets["rgb"])
+        # print(features)
+        # print(targets)
+        preds = self.forward(features)
+        # print(preds)
+        return self.loss_fn(preds, targets["rgb"])
 
 
 # Check the model
