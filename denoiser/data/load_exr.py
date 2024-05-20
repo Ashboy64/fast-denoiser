@@ -197,7 +197,11 @@ def load_teapot():
     cv.waitKey(0)
 
     print("Teapot 1 features:")
-    print(read_gbufferfilm_exr("test-images/watercolor/camera_1-1_spp.exr"))
+    features = read_gbufferfilm_exr("test-images/watercolor/camera_1-1_spp.exr")
+    for feature_name, feature in features.items():
+        print(feature_name)
+        print(feature)
+        print()
 
 
 if __name__ == "__main__":

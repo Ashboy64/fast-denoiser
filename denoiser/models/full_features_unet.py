@@ -17,8 +17,6 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
         self.features_to_use = features_to_use
         self.num_input_channels = sum(features_to_use.values())
 
-        self.batch_norm = nn.BatchNorm2d(self.num_input_channels)
-
         # Encoder (downsampling)
         self.down_conv1 = nn.Sequential(
             nn.Conv2d(
@@ -58,12 +56,29 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
 
         self.loss_fn = nn.MSELoss()
 
-    def forward(self, x):
-        x = torch.concat(
-            [x[feature_name] for feature_name in self.features_to_use], dim=1
-        )
+    def preprocess_features(self, x):
+        features = []
 
-        x = self.batch_norm(x)
+        for feature_name in self.features_to_use:
+            feature = x[feature_name]
+
+            if feature_name == "position":
+                batch_size, _, width, height = feature.shape
+
+                depth = feature[:, 2, :, :]
+                max_depths = torch.amax(depth, dim=(1, 2)).view(
+                    batch_size, 1, 1
+                )
+                depth /= max_depths
+
+                features.append(depth.view(batch_size, 1, width, height))
+            else:                
+                features.append(feature)
+
+        return features
+
+    def forward(self, x):
+        x = torch.concat(self.preprocess_features(x), dim=1)
 
         # Encoder
         x1 = self.down_conv1(x)
@@ -77,22 +92,19 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
         return x5
 
     def compute_loss(self, features, targets):
-        # print(features)
-        # print(targets)
         preds = self.forward(features)
-        # print(preds)
         return self.loss_fn(preds, targets["rgb"])
 
 
 # Check the model
 if __name__ == "__main__":
-    # Initialize model
+    # Initialize model.
     model = FullFeatures_UnetDenoisingCNN()
 
-    # Generate a dummy input (batch size, channels, height, width)
+    # Generate a dummy input (batch size, channels, height, width).
     dummy_input = torch.randn(1, 3, 64, 64)
 
-    # Forward pass
+    # Forward pass.
     output = model(dummy_input)
 
     print("Output shape:", output.shape)

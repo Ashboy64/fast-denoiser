@@ -9,6 +9,12 @@ Regular pbrt:
 ./pbrt ../../scenes/watercolor/watercolor/camera-1.pbrt --outfile watercolor_camera_1.exr --spp 100
 ```
 
+Regular pbrt teapot:
+
+```
+./pbrt ../../scenes/teapot/scene-v4.pbrt --outfile test.png --spp 100
+```
+
 Multiview pbrt test:
 
 ```

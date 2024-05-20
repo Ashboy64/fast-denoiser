@@ -33,12 +33,12 @@ def seed(seed=0):
 def visualize_predictions(model, dataloader, device, num_images=10):
     features, targets = next(iter(dataloader))
     features = move_features_to_device(features, device)
-    targets = targets.to(device)
+    targets = move_features_to_device(targets, device)
 
     outputs = model(features)
 
     for image_idx in range(num_images):
-        original_image = targets[image_idx, ...]
+        original_image = targets["rgb"][image_idx, ...]
         noisy_image = features["rgb"][image_idx, ...]
         denoised_image = outputs[image_idx, ...]
 
@@ -83,20 +83,22 @@ def main(config):
     train_loader, val_loader, test_loader = load_data(config.data)
 
     model = load_model(config.model).to(config.device)
-    model.load_state_dict(torch.load(config.logging.ckpt_dir))
+    model.load_state_dict(
+        torch.load(config.logging.ckpt_dir, map_location=torch.device("cpu"))
+    )
     model.eval()
 
-    # print(f"Visualizing predictions")
-    # visualize_predictions(model, val_loader, config.device)
+    print(f"Visualizing predictions")
+    visualize_predictions(model, val_loader, config.device)
 
-    print(f"Measuring throughput")
-    measure_throughput(
-        model,
-        train_loader,
-        config.device,
-        num_batches=100,
-        batch_size=config.data.batch_size,
-    )
+    # print(f"Measuring throughput")
+    # measure_throughput(
+    #     model,
+    #     train_loader,
+    #     config.device,
+    #     num_batches=100,
+    #     batch_size=config.data.batch_size,
+    # )
 
 
 if __name__ == "__main__":

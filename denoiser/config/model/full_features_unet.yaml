@@ -3,7 +3,7 @@ name: full_features_unet
 features_to_use:
   rgb: 3
   albedo: 3
-  # position: 3
+  position: 1   # Position has x, y, z but we only take z / depth component.
   # surface_coords: 2
   # grad_camera_depth: 2
   # surface_normals: 3

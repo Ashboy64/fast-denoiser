@@ -1,0 +1,92 @@
+FINAL STATS:
+rgb-channel_0
+	mean input: 0.3478775918483734 target: 0.3472656309604645
+	std input: 0.4408242702484131 target: 0.3046678304672241
+	min input: -0.0024852752685546875 target: 0.00033664703369140625
+	max input: 18.90625 target: 10.6328125
+	90th_percentile input: 0.7685546875 target: 0.69189453125
+	99th_percentile input: 1.931640625 target: 1.2978515625
+rgb-channel_1
+	mean input: 0.36961066722869873 target: 0.36860498785972595
+	std input: 0.44716688990592957 target: 0.32092350721359253
+	min input: -2.255859375 target: 0.00012731552124023438
+	max input: 16.390625 target: 8.3359375
+	90th_percentile input: 0.84130859375 target: 0.7578125
+	99th_percentile input: 1.962890625 target: 1.3349609375
+rgb-channel_2
+	mean input: 0.41240260004997253 target: 0.41340166330337524
+	std input: 0.5534074902534485 target: 0.3705176115036011
+	min input: -0.043304443359375 target: 9.66191291809082e-05
+	max input: 23.3125 target: 9.1640625
+	90th_percentile input: 0.984375 target: 0.87060546875
+	99th_percentile input: 2.453125 target: 1.478515625
+albedo-channel_0
+	mean input: 0.35196730494499207 target: 0.35189491510391235
+	std input: 0.24422620236873627 target: 0.24204209446907043
+	min input: 0.0 target: 0.0
+	max input: 1.1171875 target: 0.98779296875
+	90th_percentile input: 0.7587890625 target: 0.78173828125
+	99th_percentile input: 0.861328125 target: 0.82275390625
+albedo-channel_1
+	mean input: 0.3339482247829437 target: 0.33388736844062805
+	std input: 0.24998944997787476 target: 0.24863296747207642
+	min input: 0.0 target: 0.0
+	max input: 0.859375 target: 0.84716796875
+	90th_percentile input: 0.779296875 target: 0.775390625
+	99th_percentile input: 0.82763671875 target: 0.822265625
+albedo-channel_2
+	mean input: 0.31890204548835754 target: 0.3189977705478668
+	std input: 0.26452696323394775 target: 0.2550029754638672
+	min input: 0.0 target: 0.0
+	max input: 1.18359375 target: 0.8466796875
+	90th_percentile input: 0.72607421875 target: 0.7744140625
+	99th_percentile input: 0.98681640625 target: 0.822265625
+rgb_sample_variance-channel_0
+	mean input: 0.8369163274765015 target: 0.8358842134475708
+	std input: 7.735403537750244 target: 3.050889492034912
+	min input: 0.0 target: 0.0
+	max input: 798.5 target: 279.5
+	90th_percentile input: 1.12109375 target: 1.7841796875
+	99th_percentile input: 11.5390625 target: 7.0299072265625
+rgb_sample_variance-channel_1
+	mean input: 0.9068353772163391 target: 0.9017802476882935
+	std input: 8.08610725402832 target: 3.278982639312744
+	min input: 0.0 target: 0.0
+	max input: 784.0 target: 299.25
+	90th_percentile input: 1.21875 target: 1.9140625
+	99th_percentile input: 12.559814453125 target: 7.6275634765625
+rgb_sample_variance-channel_2
+	mean input: 1.6646819114685059 target: 1.6832585334777832
+	std input: 13.625602722167969 target: 4.601755142211914
+	min input: 0.0 target: 0.0
+	max input: 1789.0 target: 388.0
+	90th_percentile input: 2.390625 target: 3.453125
+	99th_percentile input: 26.29150390625 target: 13.559814453125
+rgb_relative_sample_variance-channel_0
+	mean input: 0.8407208919525146 target: 1.8439050912857056
+	std input: 1.6850309371948242 target: 2.068127393722534
+	min input: 0.0 target: 0.0
+	max input: 79.5 target: 71.6875
+	90th_percentile input: 1.7080078125 target: 3.32421875
+	99th_percentile input: 7.3046875 target: 10.40625
+rgb_relative_sample_variance-channel_1
+	mean input: 0.8759864568710327 target: 1.9060289859771729
+	std input: 1.7471139430999756 target: 2.1241302490234375
+	min input: 0.0 target: 0.0
+	max input: 77.375 target: 71.9375
+	90th_percentile input: 1.771484375 target: 3.4453125
+	99th_percentile input: 7.65625 target: 10.6171875
+rgb_relative_sample_variance-channel_2
+	mean input: 1.237750768661499 target: 3.1076276302337646
+	std input: 2.458927869796753 target: 3.221689462661743
+	min input: 0.0 target: 0.0
+	max input: 116.4375 target: 404.0
+	90th_percentile input: 2.6015625 target: 5.51953125
+	99th_percentile input: 11.71875 target: 15.6875
+position-channel_0
+	mean input: 272.4032897949219 target: 272.4119873046875
+	std input: 150.9493408203125 target: 150.8628387451172
+	min input: 0.0 target: 0.0
+	max input: 771.0 target: 770.5
+	90th_percentile input: 489.25 target: 489.25
+	99th_percentile input: 618.5 target: 618.0
