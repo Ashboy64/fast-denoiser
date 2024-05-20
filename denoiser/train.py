@@ -23,20 +23,34 @@ def eval_model(model, dataloaders, device):
     model.eval()
 
     losses = []
+    metrics = []
 
     for dataloader in dataloaders:
         running_loss = 0.0
+        running_l1 = 0.0
+        running_l2 = 0.0
 
         for features, targets in tqdm.tqdm(dataloader):
             features = move_features_to_device(features, device)
             targets = move_features_to_device(targets, device)
 
-            running_loss += model.compute_loss(features, targets)
+            preds = model(features)
+
+            running_loss += model.compute_loss(features, targets)[0]
+
+            running_l1 += torch.mean(torch.abs(preds - targets["rgb"]))
+            running_l2 += torch.mean((preds - targets["rgb"]) ** 2)
 
         losses.append(running_loss / len(dataloader))
+        metrics.append(
+            {
+                "l1_error": running_l1 / len(dataloader),
+                "l2_error": running_l2 / len(dataloader),
+            }
+        )
 
     model.train()
-    return losses
+    return list(zip(losses, metrics))
 
 
 def train(model, train_loader, val_loader, test_loader, config):
@@ -65,35 +79,51 @@ def train(model, train_loader, val_loader, test_loader, config):
     while iter_num < num_grad_steps:
         print(f"Epoch {epoch}")
 
-        for features, targets in train_loader:
+        for features, targets in tqdm.tqdm(train_loader):
             if iter_num == num_grad_steps:
                 break
 
             features = move_features_to_device(features, device)
             targets = move_features_to_device(targets, device)
 
-            loss = model.compute_loss(features, targets)
+            train_loss, metrics = model.compute_loss(features, targets)
 
             optimizer.zero_grad()
-            loss.backward()
+            train_loss.backward()
             optimizer.step()
 
             to_log = {}
 
             if (iter_num + 1) % log_interval == 0:
                 to_log["iter"] = iter_num
-                to_log["train/train_loss"] = loss
-                print(f"{iter_num}: Train loss = {loss}")
+                to_log["train/train_loss"] = train_loss
+
+                log_str = [f"{iter_num}: train_loss = {train_loss}"]
+
+                for metric_name, metric_val in metrics.items():
+                    to_log[f"train/{metric_name}"] = metric_val
+                    log_str.append(f"{metric_name} = {metric_val}")
+
+                print(", ".join(log_str))
 
             if (iter_num + 1) % eval_interval == 0:
-                val_loss, test_loss = eval_model(
+                (val_loss, val_metrics), (test_loss, test_metrics) = eval_model(
                     model, [val_loader, test_loader], device
                 )
-                print(f"{iter_num}: Val loss = {val_loss}")
 
                 to_log["iter"] = iter_num
                 to_log["val/val_loss"] = val_loss
                 to_log["test/test_loss"] = test_loss
+
+                log_str = [f"{iter_num}: val_loss = {val_loss}"]
+                for metric_name, metric_val in val_metrics.items():
+                    to_log[f"val/{metric_name}"] = metric_val
+                    log_str.append(f"{metric_name} = {metric_val}")
+
+                for metric_name, metric_val in test_metrics.items():
+                    to_log[f"test/{metric_name}"] = metric_val
+
+                print(", ".join(log_str))
 
             if len(to_log) > 0:
                 wandb.log(to_log)
@@ -135,7 +165,9 @@ def seed(seed=0):
     torch.manual_seed(seed)
 
 
-@hydra.main(config_path="config", config_name="tiny_imagenet", version_base=None)
+@hydra.main(
+    config_path="config", config_name="tiny_imagenet", version_base=None
+)
 def main(config):
     seed(config.seed)
     setup_wandb(config)

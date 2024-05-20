@@ -61,7 +61,14 @@ class RGB_UnetDenoisingCNN(nn.Module):
         return x5
 
     def compute_loss(self, features, targets):
-        return self.loss_fn(self.forward(features), targets["rgb"])
+        preds = self.forward(features)
+
+        l1_error = torch.mean(torch.abs(preds - targets["rgb"]))
+        l2_error = torch.mean((preds - targets["rgb"]) ** 2)
+
+        metrics = {"l1_error": l1_error.detach(), "l2_error": l2_error.detach()}
+
+        return l2_error, metrics
 
 
 # Check the model

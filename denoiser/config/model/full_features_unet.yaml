@@ -1,5 +1,7 @@
 name: full_features_unet
 
+loss_name: l1_error # ["l1_error", "l2_error"]
+
 features_to_use:
   rgb: 3
   albedo: 3

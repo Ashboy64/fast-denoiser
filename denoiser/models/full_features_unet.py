@@ -1,3 +1,5 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,7 +9,7 @@ from models.utils import register_model
 
 @register_model("full_features_unet")
 class FullFeatures_UnetDenoisingCNN(nn.Module):
-    def __init__(self, features_to_use, **kwargs):
+    def __init__(self, features_to_use, loss_name, **kwargs):
         """
         features_to_use: Dict mapping {feature_name : num_channels}.
             Eg: {"rgb": 3, "depth_map": 1, "surface_normals" : 3}.
@@ -16,6 +18,13 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
 
         self.features_to_use = features_to_use
         self.num_input_channels = sum(features_to_use.values())
+
+        assert loss_name in ["l1_error", "l2_error"]
+        self.loss_name = loss_name
+
+        # Constants for preprocessing. Computed using data/explore_pbrt_data.py.
+        # Must be specialized for each dataset.
+        self.sample_variance_90th_percentile = [1.12109375, 1.21875, 2.390625]
 
         # Encoder (downsampling)
         self.down_conv1 = nn.Sequential(
@@ -54,14 +63,14 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
             nn.Sigmoid(),
         )
 
-        self.loss_fn = nn.MSELoss()
-
+    @torch.no_grad()
     def preprocess_features(self, x):
         features = []
 
         for feature_name in self.features_to_use:
             feature = x[feature_name]
 
+            # Per sample depth normalization.
             if feature_name == "position":
                 batch_size, _, width, height = feature.shape
 
@@ -72,7 +81,22 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
                 depth /= max_depths
 
                 features.append(depth.view(batch_size, 1, width, height))
-            else:                
+
+            # Clamp sample variances to 90th percentile and normalize to [0, 1].
+            if feature_name == "rgb_sample_variance":
+                for channel_idx in range(3):
+                    feature[:, channel_idx, :, :] = (
+                        torch.clamp(
+                            feature[:, channel_idx, :, :],
+                            min=0.0,
+                            max=self.sample_variance_90th_percentile[
+                                channel_idx
+                            ],
+                        )
+                        / self.sample_variance_90th_percentile[channel_idx]
+                    )
+
+            else:
                 features.append(feature)
 
         return features
@@ -93,7 +117,18 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
 
     def compute_loss(self, features, targets):
         preds = self.forward(features)
-        return self.loss_fn(preds, targets["rgb"])
+
+        l1_error = torch.mean(torch.abs(preds - targets["rgb"]))
+        l2_error = torch.mean((preds - targets["rgb"]) ** 2)
+
+        metrics = {"l1_error": l1_error.detach(), "l2_error": l2_error.detach()}
+
+        if self.loss_name == "l1_error":
+            return l1_error, metrics
+        elif self.loss_name == "l2_error":
+            return l2_error, metrics
+        
+        return None, metrics
 
 
 # Check the model

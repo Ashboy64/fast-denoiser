@@ -1,6 +1,8 @@
 import os
 import tqdm
 from PIL import Image
+
+import numpy as np
 import matplotlib.pyplot as plt
 
 import torch
@@ -93,16 +95,21 @@ class NoiseWrapper(Dataset):
 
 
 class PBRT_Dataset(Dataset):
-    def __init__(self, device, folder_path=PBRT_DATA_PATH) -> None:
+    def __init__(self, preprocess_samples, folder_path=PBRT_DATA_PATH) -> None:
         super().__init__()
 
         self.folder_path = folder_path
 
         self.all_high_spp = []
         self.all_low_spp = []
-
         self.num_examples = 0
 
+        self.load_samples(folder_path)
+
+        if preprocess_samples:
+            self.preprocess_samples()
+
+    def load_samples(self, folder_path):
         # Get the unzipped folders containing images.
         batch_dirs = [
             filename
@@ -112,7 +119,7 @@ class PBRT_Dataset(Dataset):
 
         processed_samples = set([])
 
-        print(f"PREPARING PBRT DATASET ON DEVICE {device}")
+        print(f"PREPARING PBRT DATASET")
         for batch_dir in batch_dirs:
             batch_path = os.path.join(folder_path, batch_dir)
             filenames = os.listdir(batch_path)
@@ -145,21 +152,30 @@ class PBRT_Dataset(Dataset):
                 high_spp_features = read_gbufferfilm_exr(high_spp_filepath)
                 low_spp_features = read_gbufferfilm_exr(low_spp_filepath)
 
-                # for key in high_spp_features:
-                #     high_spp_features[key] = torch.tensor(
-                #         high_spp_features[key], device=device
-                #     )
-
-                # for key in low_spp_features:
-                #     low_spp_features[key] = torch.tensor(
-                #         low_spp_features[key], device=device
-                #     )
-
                 self.all_high_spp.append(high_spp_features)
                 self.all_low_spp.append(low_spp_features)
                 self.num_examples += 1
-            
-            # break
+
+    def preprocess_samples(self):
+        clamp_features = ["rgb", "albedo"]
+
+        for idx in range(self.num_examples):
+            for clamp_feature in clamp_features:
+                self.all_high_spp[idx][clamp_feature] = torch.tensor(
+                    np.clip(
+                        self.all_high_spp[idx][clamp_feature],
+                        a_min=0.0,
+                        a_max=1.0,
+                    )
+                )
+
+                self.all_low_spp[idx][clamp_feature] = torch.tensor(
+                    np.clip(
+                        self.all_low_spp[idx][clamp_feature],
+                        a_min=0.0,
+                        a_max=1.0,
+                    )
+                )
 
     def __len__(self):
         return self.num_examples
@@ -167,15 +183,6 @@ class PBRT_Dataset(Dataset):
     def __getitem__(self, idx):
         high_spp_features = self.all_high_spp[idx]
         low_spp_features = self.all_low_spp[idx]
-
-        # high_spp_features = read_gbufferfilm_exr(high_spp_filepath)
-        # low_spp_features = read_gbufferfilm_exr(low_spp_filepath)
-
-        for key in high_spp_features:
-            high_spp_features[key] = torch.tensor(high_spp_features[key])
-
-        for key in low_spp_features:
-            low_spp_features[key] = torch.tensor(low_spp_features[key])
 
         return low_spp_features, high_spp_features
 
