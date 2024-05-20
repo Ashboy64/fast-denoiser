@@ -140,7 +140,9 @@ def train(model, train_loader, val_loader, test_loader, config):
 
 
 def get_run_name(config):
-    run_name = f"{config.data.name}-{config.model.name}"
+    run_name = (
+        f"{config.data.name}-{config.model.name}-lr_{config.optimizer.lr}"
+    )
     if len(config.wandb.run_name_suffix) > 0:
         run_name = f"{run_name}-{config.wandb.run_name_suffix}"
     return run_name

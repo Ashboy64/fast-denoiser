@@ -25,18 +25,20 @@ Multiview pbrt test:
 
 ### PBRT
 
-Train full features UNET denoiser:
+Full features UNET denoiser sweeps:
 
 ```
-python train.py --config-name pbrt \
+python train.py --multirun --config-name pbrt \
     device=cuda \
     logging.eval_interval=100 \
-    logging.log_interval=1 \
+    logging.log_interval=10 \
     logging.ckpt_interval=100 \
     data.num_dataloader_workers=1 \
+    model=full_features_unet \
+    model.loss_name=l1_error,l2_error \
+    optimizer.lr=1e-1,1e-2,1e-3 \
     logging.save_ckpt=False \
-    wandb.mode=disabled \
-    model=full_features_unet
+    wandb.mode=disabled
 ```
 
 Visualize predictions:
