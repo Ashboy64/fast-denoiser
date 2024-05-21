@@ -11,7 +11,7 @@ from data import load_data, move_features_to_device
 from models import load_model
 
 
-def show_image(denoised_image, noisy_image, original_image):
+def show_image(denoised_image, noisy_image, original_image, example_idx=0):
     fig, ax = plt.subplots(1, 3, figsize=(15, 5))
     titles = ["Noisy Image", "Denoised Output", "Ground Truth"]
     images = [noisy_image, denoised_image, original_image]
@@ -21,7 +21,10 @@ def show_image(denoised_image, noisy_image, original_image):
         ax[idx].imshow(img)
         ax[idx].set_title(title)
         ax[idx].axis("off")
-    plt.show()
+    
+    plt.savefig(f"example_{example_idx}.png")
+
+    # plt.show()
 
 
 def seed(seed=0):
@@ -42,35 +45,83 @@ def visualize_predictions(model, dataloader, device, num_images=10):
         noisy_image = features["rgb"][image_idx, ...]
         denoised_image = outputs[image_idx, ...]
 
-        show_image(denoised_image, noisy_image, original_image)
+        show_image(denoised_image, noisy_image, original_image, image_idx)
+
+
+def compute_stats(samples):
+    return {
+        "mean": np.mean(samples),
+        "std": np.std(samples),
+        "min": np.min(samples),
+        "max": np.max(samples),
+        "90th_percentile": np.quantile(samples, 0.90),
+        "99th_percentile": np.quantile(samples, 0.99),
+    }
 
 
 def measure_throughput(
-    model, dataloader, device, num_batches=100, batch_size=64
+    model,
+    dataloader,
+    device,
+    num_warmup=10,
+    num_trials=100,
+    num_samples=4000,
+    batch_size=100,
 ):
-    num_batches = min(len(dataloader), batch_size)
-    print(f"MEASURING THROUGHPUT WITH {num_batches} BATCHES.")
+    example_inputs = move_features_to_device(next(iter(dataloader))[0], device)
 
-    # Pre-fetch batches to avoid dataloader influencing throughput.
-    all_features = []
-    data_iter = iter(dataloader)
-    for _ in range(num_batches):
-        features = move_features_to_device(next(data_iter)[0], device)
-        all_features.append(features)
+    num_batches = num_samples // batch_size
 
-    num_frames = num_batches * batch_size
+    benchmark_inputs = {}
+    for feature_name, feature_vals in example_inputs.items():
+        benchmark_inputs[feature_name] = torch.rand(
+            batch_size, *feature_vals.shape[1:]
+        ).to(feature_vals)
 
-    # Run model.
-    start = time.time()
+    timings = []
 
-    for features in all_features:
-        model(features)
+    for run_idx in range(num_warmup + num_trials):
+        start_time = time.time()
+    
+        for _ in range(num_batches):
+            model(benchmark_inputs)
+    
+        time_taken = time.time() - start_time
 
-    time_taken = time.time() - start
+        if run_idx >= num_warmup:
+            timings.append(time_taken)
 
-    time_for_4K = 4000 * time_taken / num_frames
+        if run_idx % 10 == 0:
+            print(f"Done with {run_idx + 1} / {num_warmup + num_trials}")
 
-    print(f"{num_frames} done in {time_taken}. time_for_4K = {time_for_4K}")
+    stats = compute_stats(timings)
+
+    print(f"BENCHMARK RESULTS:")
+    for stat_name, stat_val in stats.items():
+        print(f"\t{stat_name}: {stat_val}")
+
+
+def build_and_optimize_model(config, dataloader):
+    model = load_model(config.model).to(config.device)
+    model.load_state_dict(
+        torch.load(config.logging.ckpt_dir, map_location=torch.device("mps"))
+    )
+    model.eval()
+
+    if config.optimizations.script_model:
+        example_inputs = move_features_to_device(
+            next(iter(dataloader))[0], config.device
+        )
+
+        model = torch.jit.trace(model, example_inputs)
+
+        print(f"---- TRACED MODEL ----")
+        print(model)
+    
+        if config.optimizations.optimize_for_inference:
+            model = torch.jit.optimize_for_inference(model)
+
+    return model
 
 
 @hydra.main(
@@ -82,21 +133,19 @@ def main(config):
 
     train_loader, val_loader, test_loader = load_data(config.data)
 
-    model = load_model(config.model).to(config.device)
-    model.load_state_dict(
-        torch.load(config.logging.ckpt_dir, map_location=torch.device("cpu"))
-    )
-    model.eval()
+    model = build_and_optimize_model(config, train_loader)
 
     print(f"Visualizing predictions")
     visualize_predictions(model, val_loader, config.device)
 
     # print(f"Measuring throughput")
+
     # measure_throughput(
     #     model,
     #     train_loader,
     #     config.device,
-    #     num_batches=100,
+    #     num_warmup=config.num_warmup,
+    #     num_trials=config.num_trials,
     #     batch_size=config.data.batch_size,
     # )
 

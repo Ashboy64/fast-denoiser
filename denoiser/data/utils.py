@@ -154,6 +154,7 @@ class PBRT_Dataset(Dataset):
                 self.all_high_spp.append(high_spp_features)
                 self.all_low_spp.append(low_spp_features)
                 self.num_examples += 1
+            # break
 
     def preprocess_samples(self):
         clamp_features = ["rgb", "albedo"]

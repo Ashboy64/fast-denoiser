@@ -28,8 +28,8 @@ Multiview pbrt test:
 Full features UNET denoiser sweeps:
 
 ```
-python train.py --multirun --config-name pbrt \
-    device=cuda \
+python train.py --multirun --config-name train_pbrt \
+    device=mps \
     logging.eval_interval=100 \
     logging.log_interval=100 \
     logging.ckpt_interval=100 \
@@ -40,19 +40,18 @@ python train.py --multirun --config-name pbrt \
     training.num_grad_steps=5000 \
     data.batch_size=128 \
     logging.save_ckpt=True \
-    wandb.mode=online
+    wandb.mode=online \
+    wandb.run_name_suffix=only_rgb
 ```
 
-Visualize predictions:
+Visualize predictions / eval:
 
 ```
-python eval.py --config-name pbrt \
-    device=cuda \
-    logging.eval_interval=100 \
-    logging.log_interval=1 \
-    logging.ckpt_interval=100 \
-    logging.ckpt_dir=../checkpoints/05_19_2024-06_04_07 \
+python eval.py --config-name eval_pbrt \
+    device=mps \
+    logging.ckpt_dir=../checkpoints/full_features_unet/only_rgb/05_21_2024-13_29_09/iter_4999.pt \
     data.num_dataloader_workers=1 \
+    data.batch_size=4000 \
     logging.save_ckpt=False \
     wandb.mode=disabled \
     model=full_features_unet

@@ -1,0 +1,44 @@
+defaults:
+  - model: rgb_baseline
+  - data: pbrt
+  - _self_
+  # - override hydra/launcher: joblib
+  # - override hydra/launcher/n_jobs: "2"
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled
+
+device: cpu
+seed: 0
+
+num_warmup: 20
+num_trials: 20
+num_samples: 4000
+
+optimizations:
+  script_model: True
+  optimize_for_inference: True
+
+training:
+  num_grad_steps: 5000
+  
+optimizer:
+  lr: 0.01
+
+logging:
+  log_interval: 1
+  eval_interval: 100
+  
+  save_ckpt: True
+  ckpt_dir: ../checkpoints
+  ckpt_interval: 100
+
+wandb:
+  mode: online
+  entity: arao1
+  project: fast-denoiser
+  run_name_suffix: ""
+
+hydra:  
+  output_subdir: null  
+  run:  
+    dir: .
