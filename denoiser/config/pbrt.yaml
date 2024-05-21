@@ -2,6 +2,8 @@ defaults:
   - model: rgb_baseline
   - data: pbrt
   - _self_
+  # - override hydra/launcher: joblib
+  # - override hydra/launcher/n_jobs: "2"
   - override hydra/hydra_logging: disabled  
   - override hydra/job_logging: disabled
 

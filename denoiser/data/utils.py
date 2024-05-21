@@ -95,10 +95,13 @@ class NoiseWrapper(Dataset):
 
 
 class PBRT_Dataset(Dataset):
-    def __init__(self, preprocess_samples, folder_path=PBRT_DATA_PATH) -> None:
+    def __init__(
+        self, device, preprocess_samples, folder_path=PBRT_DATA_PATH
+    ) -> None:
         super().__init__()
 
         self.folder_path = folder_path
+        self.device = device
 
         self.all_high_spp = []
         self.all_low_spp = []
@@ -137,13 +140,9 @@ class PBRT_Dataset(Dataset):
                 low_spp_filename = base_filename + "_low.exr"
 
                 if high_spp_filename not in filenames:
-                    print(f"CONTINUING ON {high_spp_filename} IN HIGH")
                     continue
 
                 if low_spp_filename not in filenames:
-                    print(
-                        f"CONTINUING ON {low_spp_filename} IN LOWrandom_camera_186_high.exr"
-                    )
                     continue
 
                 high_spp_filepath = os.path.join(batch_path, high_spp_filename)

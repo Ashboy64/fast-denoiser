@@ -1,6 +1,7 @@
 name: pbrt
 
 folder_path: ../rendered_images/unzipped
+preprocess_samples: True
 
 device: cuda
 batch_size: 64

@@ -9,3 +9,4 @@ omegaconf
 OpenEXR
 opencv-python
 datasets
+hydra-joblib-launcher

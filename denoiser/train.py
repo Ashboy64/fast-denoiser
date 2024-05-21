@@ -62,14 +62,8 @@ def train(model, train_loader, val_loader, test_loader, config):
     eval_interval = config.logging.eval_interval
 
     save_ckpt = config.logging.save_ckpt
+    ckpt_dir = config.logging.ckpt_dir
     ckpt_interval = config.logging.ckpt_interval
-
-    if save_ckpt:
-        ckpt_subdir = datetime.now().strftime("%m_%d_%Y-%H_%M_%S")
-        ckpt_dir = os.path.join(
-            config.logging.ckpt_dir, config.model.name, ckpt_subdir
-        )
-        os.makedirs(ckpt_dir, exist_ok=True)
 
     optimizer = optim.Adam(model.parameters(), lr=config.optimizer.lr)
 
@@ -148,7 +142,19 @@ def get_run_name(config):
     return run_name
 
 
-def setup_wandb(config):
+def setup_logging(config):
+    # Set checkpoint dir. Do this first so it saves to wandb config.
+    save_ckpt = config.logging.save_ckpt
+
+    if save_ckpt:
+        ckpt_subdir = datetime.now().strftime("%m_%d_%Y-%H_%M_%S")
+        ckpt_dir = os.path.join(
+            config.logging.ckpt_dir, config.model.name, ckpt_subdir
+        )
+        os.makedirs(ckpt_dir, exist_ok=True)
+        config.logging.ckpt_dir = ckpt_dir
+
+    # Setup wandb.
     if "WANDB_API_KEY" in os.environ:
         wandb.login(key=os.environ["WANDB_API_KEY"])
 
@@ -158,6 +164,7 @@ def setup_wandb(config):
         name=get_run_name(config),
         config=OmegaConf.to_container(config),
         mode=config.wandb.mode,
+        reinit=True
     )
 
 
@@ -172,7 +179,7 @@ def seed(seed=0):
 )
 def main(config):
     seed(config.seed)
-    setup_wandb(config)
+    setup_logging(config)
 
     model = load_model(config.model).to(config.device)
     train_loader, val_loader, test_loader = load_data(config.data)

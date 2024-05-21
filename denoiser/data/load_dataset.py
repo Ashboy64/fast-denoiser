@@ -29,21 +29,24 @@ def create_dataloaders(split_datasets, batch_size, num_dataloader_workers,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_dataloader_workers,
-        pin_memory=pin_memory
+        pin_memory=pin_memory,
+        multiprocessing_context='fork'
     )
     val_train = DataLoader(
         split_datasets[1],
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_dataloader_workers,
-        pin_memory=pin_memory
+        pin_memory=pin_memory,
+        multiprocessing_context='fork'
     )
     test_loader = DataLoader(
         split_datasets[2],
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_dataloader_workers,
-        pin_memory=pin_memory
+        pin_memory=pin_memory,
+        multiprocessing_context='fork'
     )
 
     return train_loader, val_train, test_loader
@@ -77,10 +80,11 @@ def load_pbrt_data(
     val_frac,
     test_frac,
     device,
+    preprocess_samples,
     num_dataloader_workers=8,
     **kwargs,
 ):
-    raw_dataset = PBRT_Dataset(device, folder_path)
+    raw_dataset = PBRT_Dataset(device, preprocess_samples, folder_path)
     split_datasets = torch.utils.data.random_split(
         raw_dataset, lengths=[train_frac, val_frac, test_frac]
     )
