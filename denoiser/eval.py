@@ -21,7 +21,7 @@ def show_image(denoised_image, noisy_image, original_image, example_idx=0):
         ax[idx].imshow(img)
         ax[idx].set_title(title)
         ax[idx].axis("off")
-    
+
     plt.savefig(f"example_{example_idx}.png")
 
     # plt.show()
@@ -63,6 +63,7 @@ def measure_throughput(
     model,
     dataloader,
     device,
+    preprocess_outside=True,
     num_warmup=10,
     num_trials=100,
     num_samples=4000,
@@ -78,14 +79,22 @@ def measure_throughput(
             batch_size, *feature_vals.shape[1:]
         ).to(feature_vals)
 
+    if preprocess_outside:
+        benchmark_inputs = torch.concat(
+            model.preprocess_features(benchmark_inputs), dim=1
+        )
+
     timings = []
 
     for run_idx in range(num_warmup + num_trials):
         start_time = time.time()
-    
+
         for _ in range(num_batches):
-            model(benchmark_inputs)
-    
+            if preprocess_outside:
+                model.forward_no_preprocess(benchmark_inputs)
+            else:
+                model(benchmark_inputs)
+
         time_taken = time.time() - start_time
 
         if run_idx >= num_warmup:
@@ -108,18 +117,18 @@ def build_and_optimize_model(config, dataloader):
     )
     model.eval()
 
-    if config.optimizations.script_model:
-        example_inputs = move_features_to_device(
-            next(iter(dataloader))[0], config.device
-        )
+    example_inputs = move_features_to_device(
+        next(iter(dataloader))[0], config.device
+    )
 
+    if config.optimizations.trace_model:
         model = torch.jit.trace(model, example_inputs)
 
-        print(f"---- TRACED MODEL ----")
-        print(model)
-    
-        if config.optimizations.optimize_for_inference:
-            model = torch.jit.optimize_for_inference(model)
+    if config.optimizations.script_model:
+        model = torch.jit.script(model)
+
+    if config.optimizations.optimize_for_inference:
+        model = torch.jit.optimize_for_inference(model)
 
     return model
 
@@ -135,19 +144,21 @@ def main(config):
 
     model = build_and_optimize_model(config, train_loader)
 
-    print(f"Visualizing predictions")
-    visualize_predictions(model, val_loader, config.device)
+    # print(f"Visualizing predictions")
+    # visualize_predictions(model, val_loader, config.device)
 
-    # print(f"Measuring throughput")
+    print(f"Measuring throughput")
 
-    # measure_throughput(
-    #     model,
-    #     train_loader,
-    #     config.device,
-    #     num_warmup=config.num_warmup,
-    #     num_trials=config.num_trials,
-    #     batch_size=config.data.batch_size,
-    # )
+    measure_throughput(
+        model,
+        train_loader,
+        config.device,
+        preprocess_outside=config.preprocess_outside,
+        num_warmup=config.num_warmup,
+        num_trials=config.num_trials,
+        num_samples=config.num_samples,
+        batch_size=config.data.batch_size,
+    )
 
 
 if __name__ == "__main__":

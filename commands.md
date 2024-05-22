@@ -51,7 +51,10 @@ python eval.py --config-name eval_pbrt \
     device=mps \
     logging.ckpt_dir=../checkpoints/full_features_unet/only_rgb/05_21_2024-13_29_09/iter_4999.pt \
     data.num_dataloader_workers=1 \
-    data.batch_size=4000 \
+    num_samples=4000 \
+    num_warmup=20 \
+    num_trials=20 \
+    data.batch_size=1000 \
     logging.save_ckpt=False \
     wandb.mode=disabled \
     model=full_features_unet

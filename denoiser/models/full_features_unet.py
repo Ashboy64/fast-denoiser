@@ -1,4 +1,5 @@
 import numpy as np
+from omegaconf import OmegaConf
 
 import torch
 import torch.nn as nn
@@ -16,7 +17,7 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
         """
         super(FullFeatures_UnetDenoisingCNN, self).__init__()
 
-        self.features_to_use = features_to_use
+        self.features_to_use = OmegaConf.to_container(features_to_use)
         self.num_input_channels = sum(features_to_use.values())
 
         assert loss_name in ["l1_error", "l2_error"]
@@ -104,6 +105,18 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
     def forward(self, x):
         x = torch.concat(self.preprocess_features(x), dim=1)
 
+        # Encoder
+        x1 = self.down_conv1(x)
+        x2 = self.down_conv2(x1)
+
+        # Decoder
+        x3 = self.up_conv1(x2)
+        x4 = torch.cat((x3, x1), dim=1)  # skip connection
+        x5 = self.up_conv2(x4)
+
+        return x5
+    
+    def forward_no_preprocess(self, x):
         # Encoder
         x1 = self.down_conv1(x)
         x2 = self.down_conv2(x1)

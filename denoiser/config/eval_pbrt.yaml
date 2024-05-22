@@ -14,9 +14,12 @@ num_warmup: 20
 num_trials: 20
 num_samples: 4000
 
+preprocess_outside: True
+
 optimizations:
-  script_model: True
-  optimize_for_inference: True
+  trace_model: False
+  script_model: False
+  optimize_for_inference: False
 
 training:
   num_grad_steps: 5000
