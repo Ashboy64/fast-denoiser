@@ -84,7 +84,7 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
                 features.append(depth.view(batch_size, 1, width, height))
 
             # Clamp sample variances to 90th percentile and normalize to [0, 1].
-            if feature_name == "rgb_sample_variance":
+            elif feature_name == "rgb_sample_variance":
                 for channel_idx in range(3):
                     feature[:, channel_idx, :, :] = (
                         torch.clamp(
@@ -102,34 +102,28 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
 
         return features
 
+    def set_optimized(self, optimized_model):
+        self.optimized_model = optimized_model
+        self.forward = lambda x: optimized_model(x)
+
     def forward(self, x):
+        # Encoder
+        x1 = self.down_conv1(x)
+        x2 = self.down_conv2(x1)
+
+        # Decoder
+        x3 = self.up_conv1(x2)
+        x4 = torch.cat((x3, x1), dim=1)  # skip connection
+        x5 = self.up_conv2(x4)
+
+        return x5
+
+    def forward_with_preprocess(self, x):
         x = torch.concat(self.preprocess_features(x), dim=1)
-
-        # Encoder
-        x1 = self.down_conv1(x)
-        x2 = self.down_conv2(x1)
-
-        # Decoder
-        x3 = self.up_conv1(x2)
-        x4 = torch.cat((x3, x1), dim=1)  # skip connection
-        x5 = self.up_conv2(x4)
-
-        return x5
-    
-    def forward_no_preprocess(self, x):
-        # Encoder
-        x1 = self.down_conv1(x)
-        x2 = self.down_conv2(x1)
-
-        # Decoder
-        x3 = self.up_conv1(x2)
-        x4 = torch.cat((x3, x1), dim=1)  # skip connection
-        x5 = self.up_conv2(x4)
-
-        return x5
+        return self.forward(x)
 
     def compute_loss(self, features, targets):
-        preds = self.forward(features)
+        preds = self.forward_with_preprocess(features)
 
         l1_error = torch.mean(torch.abs(preds - targets["rgb"]))
         l2_error = torch.mean((preds - targets["rgb"]) ** 2)
@@ -140,7 +134,7 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
             return l1_error, metrics
         elif self.loss_name == "l2_error":
             return l2_error, metrics
-        
+
         return None, metrics
 
 

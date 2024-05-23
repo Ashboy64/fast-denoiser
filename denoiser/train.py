@@ -34,7 +34,7 @@ def eval_model(model, dataloaders, device):
             features = move_features_to_device(features, device)
             targets = move_features_to_device(targets, device)
 
-            preds = model(features)
+            preds = model.forward_with_preprocess(features)
 
             running_loss += model.compute_loss(features, targets)[0]
 
@@ -148,9 +148,7 @@ def setup_logging(config):
 
     if save_ckpt:
         ckpt_subdir = datetime.now().strftime("%m_%d_%Y-%H_%M_%S")
-        ckpt_dir = os.path.join(
-            config.logging.ckpt_dir, config.model.name, ckpt_subdir
-        )
+        ckpt_dir = os.path.join(config.logging.ckpt_dir, ckpt_subdir)
         os.makedirs(ckpt_dir, exist_ok=True)
         config.logging.ckpt_dir = ckpt_dir
 
@@ -164,7 +162,7 @@ def setup_logging(config):
         name=get_run_name(config),
         config=OmegaConf.to_container(config),
         mode=config.wandb.mode,
-        reinit=True
+        reinit=True,
     )
 
 

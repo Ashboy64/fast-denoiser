@@ -29,10 +29,11 @@ Full features UNET denoiser sweeps:
 
 ```
 python train.py --multirun --config-name train_pbrt \
-    device=mps \
+    device=cuda \
     logging.eval_interval=100 \
     logging.log_interval=100 \
     logging.ckpt_interval=100 \
+    logging.ckpt_dir=../checkpoints/full_features_unet/rgb-albedo-depth-surface_normals \
     data.num_dataloader_workers=1 \
     model=full_features_unet \
     model.loss_name=l1_error,l2_error \
@@ -41,20 +42,20 @@ python train.py --multirun --config-name train_pbrt \
     data.batch_size=128 \
     logging.save_ckpt=True \
     wandb.mode=online \
-    wandb.run_name_suffix=only_rgb
+    wandb.run_name_suffix=rgb-albedo-depth-surface_normals
 ```
 
 Visualize predictions / eval:
 
 ```
 python eval.py --config-name eval_pbrt \
-    device=mps \
+    device=cuda \
     logging.ckpt_dir=../checkpoints/full_features_unet/only_rgb/05_21_2024-13_29_09/iter_4999.pt \
     data.num_dataloader_workers=1 \
-    num_samples=4000 \
+    num_samples=1024 \
     num_warmup=20 \
     num_trials=20 \
-    data.batch_size=1000 \
+    data.batch_size=1024 \
     logging.save_ckpt=False \
     wandb.mode=disabled \
     model=full_features_unet

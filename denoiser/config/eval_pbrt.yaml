@@ -12,14 +12,14 @@ seed: 0
 
 num_warmup: 20
 num_trials: 20
-num_samples: 4000
+num_samples: 1024
 
 preprocess_outside: True
 
 optimizations:
-  trace_model: False
+  trace_model: True
   script_model: False
-  optimize_for_inference: False
+  optimize_for_inference: True
 
 training:
   num_grad_steps: 5000

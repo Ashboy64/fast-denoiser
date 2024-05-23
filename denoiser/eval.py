@@ -66,8 +66,8 @@ def measure_throughput(
     preprocess_outside=True,
     num_warmup=10,
     num_trials=100,
-    num_samples=4000,
-    batch_size=100,
+    num_samples=1024,
+    batch_size=1024,
 ):
     example_inputs = move_features_to_device(next(iter(dataloader))[0], device)
 
@@ -91,9 +91,9 @@ def measure_throughput(
 
         for _ in range(num_batches):
             if preprocess_outside:
-                model.forward_no_preprocess(benchmark_inputs)
+                model.forward(benchmark_inputs)
             else:
-                model(benchmark_inputs)
+                model.forward_with_preprocess(benchmark_inputs)
 
         time_taken = time.time() - start_time
 
@@ -107,13 +107,15 @@ def measure_throughput(
 
     print(f"BENCHMARK RESULTS:")
     for stat_name, stat_val in stats.items():
-        print(f"\t{stat_name}: {stat_val}")
+        print(f"\t{stat_name}: {stat_val * 1e3} ms")
 
 
 def build_and_optimize_model(config, dataloader):
     model = load_model(config.model).to(config.device)
     model.load_state_dict(
-        torch.load(config.logging.ckpt_dir, map_location=torch.device("mps"))
+        torch.load(
+            config.logging.ckpt_dir, map_location=torch.device(config.device)
+        )
     )
     model.eval()
 
@@ -121,14 +123,23 @@ def build_and_optimize_model(config, dataloader):
         next(iter(dataloader))[0], config.device
     )
 
+    example_inputs = torch.concat(
+        model.preprocess_features(example_inputs), dim=1
+    )
+
+    optimized_model = model
+
     if config.optimizations.trace_model:
-        model = torch.jit.trace(model, example_inputs)
+        optimized_model = torch.jit.trace(optimized_model, example_inputs)
 
     if config.optimizations.script_model:
-        model = torch.jit.script(model)
+        optimized_model = torch.jit.script(optimized_model)
 
     if config.optimizations.optimize_for_inference:
-        model = torch.jit.optimize_for_inference(model)
+        optimized_model = torch.jit.optimize_for_inference(optimized_model)
+
+    if optimized_model != model:
+        model.set_optimized(optimized_model)
 
     return model
 

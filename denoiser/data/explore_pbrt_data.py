@@ -39,6 +39,7 @@ def main():
         "rgb_sample_variance",
         "rgb_relative_sample_variance",
         "position",
+        "surface_normals"
     ]
 
     all_values_inputs = dict(zip(feature_names, [[] for _ in feature_names]))
@@ -46,6 +47,7 @@ def main():
 
     train_loader, val_train, test_loader = load_pbrt_data(
         folder_path=PBRT_DATA_PATH,
+        preprocess_samples=False,
         batch_size=1,
         train_frac=1.0,
         val_frac=0.0,
