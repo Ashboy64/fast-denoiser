@@ -7,3 +7,4 @@ rendered_images/unzipped
 multirun
 rendered_images/amazon_bistro
 checkpoints/archive
+blender_data_gen/scenes/*
