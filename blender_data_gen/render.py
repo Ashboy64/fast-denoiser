@@ -1,11 +1,11 @@
 import os
 import time
 
-from dataclasses import dataclass
-from typing import List
-
+import random
 import numpy as np
-from numpy import ndarray
+
+from typing import List
+from dataclasses import dataclass
 
 import bpy
 
@@ -14,27 +14,135 @@ import bpy
 class SceneInfo:
     name: str
     scene_file_path: str
-    reference_camera_pos: List[ndarray[np.float32]]
-    # camera_xy: List[Tuple[float]]
-    # height_range: Tuple[float]
+    view_layer_name: str
+    camera_name: str
+    aux_feature_image_name: str
+    reference_camera_pos: List[np.ndarray[np.float32]]
 
 
-# location xyz:  <Vector (-5.9483, -1.4727, 1.8115)>
-# rotation wxyz:  <Quaternion (w=0.6835, x=-0.6048, y=-0.2766, z=-0.3009)>
-# rotation euler:  <Euler (x=-1.3979, y=-0.8362, z=-0.1147), order='XYZ'>
-
-
-BARBERSHOP_INFO = SceneInfo(
-    name="barbershop",
-    scene_file_path="./scenes/barbershop_interior.blend",
+CLASSROOM_INFO = SceneInfo(
+    name="classroom",
+    scene_file_path="./scenes/classroom/classroom.blend",
+    view_layer_name="interior",
+    camera_name="Camera",
+    aux_feature_image_name="Image0001.png",
     reference_camera_pos=[
-        np.array([2.8629, 6.0945, 1.5725, 1.1384, 0.0130, -5.0755]),
-        np.array([2.8629, 6.0945, 1.5725, 1.1384, 0.0130, -5.0755]),
+        np.array(
+            [
+                2.576395273208618,
+                -4.465750694274902,
+                1.094475507736206,
+                1.5819953680038452,
+                3.25860833072511e-06,
+                0.25481462478637695,
+            ]
+        ),
+        np.array(
+            [
+                2.8309147357940674,
+                -3.001325845718384,
+                1.7191882133483887,
+                1.4511008262634277,
+                9.57443717197748e-07,
+                1.6475881338119507,
+            ]
+        ),
+        np.array(
+            [
+                0.8357277512550354,
+                -4.250850677490234,
+                2.0564661026000977,
+                1.5977354049682617,
+                1.5161617739067879e-05,
+                -0.7609918713569641,
+            ]
+        ),
+        np.array(
+            [
+                -0.4849654734134674,
+                -2.8069472312927246,
+                0.8680052161216736,
+                1.2443486452102661,
+                6.792260592192179e-06,
+                2.493175745010376,
+            ]
+        ),
+        np.array(
+            [
+                -0.09100060164928436,
+                1.1138038635253906,
+                1.5776495933532715,
+                1.498311161994934,
+                -5.939983111602487e-06,
+                1.6266303062438965,
+            ]
+        ),
+        np.array(
+            [
+                -0.3006440997123718,
+                0.6313178539276123,
+                1.6596485376358032,
+                1.273171067237854,
+                -7.224236014735652e-06,
+                0.3254891037940979,
+            ]
+        ),
+        np.array(
+            [
+                0.8298668265342712,
+                0.5137124061584473,
+                1.731061339378357,
+                1.5821146965026855,
+                -6.1487144193961285e-06,
+                -0.006999018602073193,
+            ]
+        ),
+        np.array(
+            [
+                1.1274628639221191,
+                1.3732091188430786,
+                1.8063400983810425,
+                1.3229436874389648,
+                -2.946389713542885e-06,
+                -0.7662237286567688,
+            ]
+        ),
+        np.array(
+            [
+                2.940042018890381,
+                2.120189666748047,
+                1.909437894821167,
+                0.6736802458763123,
+                1.2430627066351008e-05,
+                -3.913100004196167,
+            ]
+        ),
+        np.array(
+            [
+                -1.1751595735549927,
+                -4.300800323486328,
+                2.0824930667877197,
+                1.2182408571243286,
+                2.0577628674800508e-05,
+                -0.551630437374115,
+            ]
+        ),
+        np.array(
+            [
+                0.6757554411888123,
+                -1.2991529703140259,
+                1.4262173175811768,
+                1.3255845308303833,
+                1.758587131917011e-05,
+                -3.766547679901123,
+            ]
+        ),
     ],
 )
 
-
-SCENE_INFO = {"barbershop": BARBERSHOP_INFO}
+SCENE_INFO = {
+    "classroom": CLASSROOM_INFO,
+}
 
 
 @dataclass
@@ -66,63 +174,84 @@ def setup_renderer(use_gpu: bool = False):
 
 
 # Using compositing to get the depth, albedo and normals.
-def activate_compositing(path: str):
-    context = bpy.context
-    scene = bpy.context.scene
-    render = bpy.context.scene.render
+def activate_compositing(path: str, view_layer_name):
+    bpy.context.scene.use_nodes = True
+    bpy.context.scene.view_layers[view_layer_name].use_pass_z = True
+    bpy.context.scene.view_layers[view_layer_name].use_pass_combined = True
+    bpy.context.scene.view_layers[view_layer_name].use_pass_normal = True
+    bpy.context.scene.view_layers[view_layer_name].use_pass_diffuse_color = True
+    bpy.context.scene.view_layers[view_layer_name].use_pass_glossy_color = True
 
-    scene.use_nodes = True
-    scene.view_layers["RenderLayer"].use_pass_normal = True
-    scene.view_layers["RenderLayer"].use_pass_diffuse_color = True
+    bpy.context.scene.node_tree.nodes.clear()
 
-    nodes = bpy.context.scene.node_tree.nodes
-    links = bpy.context.scene.node_tree.links
+    nodes = {}
 
-    # Clear default nodes.
-    for n in nodes:
-        nodes.remove(n)
+    composite = bpy.context.scene.node_tree.nodes.new("CompositorNodeComposite")
+    render_layers = bpy.context.scene.node_tree.nodes.new(
+        "CompositorNodeRLayers"
+    )
 
-    # Create input render layer node.
-    render_layers = nodes.new("CompositorNodeRLayers")
+    normalize = bpy.context.scene.node_tree.nodes.new(
+        type="CompositorNodeNormalize"
+    )
+    nodes["depth"] = bpy.context.scene.node_tree.nodes.new(
+        "CompositorNodeOutputFile"
+    )
+    nodes["depth"].base_path = path + "/depth/"
 
-    # Create depth output nodes.
-    depth_file_output = nodes.new(type="CompositorNodeOutputFile")
-    depth_file_output.label = "Depth Output"
-    depth_file_output.base_path = f"{path}/depth"
-    depth_file_output.file_slots[0].use_node_format = True
-    depth_file_output.format.file_format = "PNG"
+    nodes["glossy_color"] = bpy.context.scene.node_tree.nodes.new(
+        "CompositorNodeOutputFile"
+    )
+    nodes["glossy_color"].base_path = path + "/glossy_color/"
+    nodes["glossy_color"].format.color_mode = "RGB"
 
-    # depth_file_output.format.color_depth = args
-    depth_file_output.format.color_mode = "BW"
+    nodes["diffuse_color"] = bpy.context.scene.node_tree.nodes.new(
+        "CompositorNodeOutputFile"
+    )
+    nodes["diffuse_color"].base_path = path + "/diffuse_color/"
+    nodes["diffuse_color"].format.color_mode = "RGB"
 
-    # Remap as other types can not represent the full range of depth.
-    map = nodes.new(type="CompositorNodeMapValue")
-    # Size is chosen kind of arbitrarily, try out until you're satisfied with resulting depth map.
-    map.offset = [-0.7]
-    map.size = [1.4]
-    map.use_min = True
-    map.min = [0]
+    nodes["normal"] = bpy.context.scene.node_tree.nodes.new(
+        "CompositorNodeOutputFile"
+    )
+    nodes["normal"].base_path = path + "/normal/"
+    nodes["normal"].format.color_mode = "RGB"
 
-    links.new(render_layers.outputs["Depth"], map.inputs[0])
-    links.new(map.outputs[0], depth_file_output.inputs[0])
+    # Link Render Layers node to other nodes
+    bpy.context.scene.node_tree.links.new(
+        render_layers.outputs["Image"], composite.inputs["Image"]
+    )
+    bpy.context.scene.node_tree.links.new(
+        render_layers.outputs["Depth"], normalize.inputs["Value"]
+    )
+    bpy.context.scene.node_tree.links.new(
+        normalize.outputs["Value"], nodes["depth"].inputs["Image"]
+    )
+    bpy.context.scene.node_tree.links.new(
+        render_layers.outputs["GlossCol"], nodes["glossy_color"].inputs["Image"]
+    )
+    bpy.context.scene.node_tree.links.new(
+        render_layers.outputs["DiffCol"], nodes["diffuse_color"].inputs["Image"]
+    )
+    bpy.context.scene.node_tree.links.new(
+        render_layers.outputs["Normal"], nodes["normal"].inputs["Image"]
+    )
+
+    return nodes
 
 
-def deactivate_compositing():
+def deactivate_compositing(view_layer_name):
     bpy.context.scene.use_nodes = False
 
-    # print(bpy.context.scene.view_layers.keys())
+    bpy.context.scene.view_layers[view_layer_name].use_pass_z = False
+    bpy.context.scene.view_layers[view_layer_name].use_pass_combined = False
+    bpy.context.scene.view_layers[view_layer_name].use_pass_normal = False
+    bpy.context.scene.view_layers[view_layer_name].use_pass_diffuse_color = (
+        False
+    )
+    bpy.context.scene.view_layers[view_layer_name].use_pass_glossy_color = False
 
-    bpy.context.scene.view_layers["RenderLayer"].use_pass_z = False
-    bpy.context.scene.view_layers["RenderLayer"].use_pass_combined = False
-    bpy.context.scene.view_layers["RenderLayer"].use_pass_normal = False
-    bpy.context.scene.view_layers["RenderLayer"].use_pass_diffuse_color = False
-    bpy.context.scene.view_layers["RenderLayer"].use_pass_glossy_color = False
-
-    # bpy.context.view_layer.use_pass_z = False
-    # bpy.context.view_layer.use_pass_combined = False
-    # bpy.context.view_layer.use_pass_normal = False
-    # bpy.context.view_layer.use_pass_diffuse_color = False
-    # bpy.context.view_layer.use_pass_glossy_color = False
+    return None
 
 
 # Warning: Not thread safe.
@@ -131,6 +260,8 @@ def render(
     position: Obj3D,
     euler_rotation: Obj3D,
     output_folder: str,
+    output_file_name: str,
+    aux_feature_image_name: str,
     samples: int = 1,
     composite_output_nodes: dict[
         str, bpy.types.CompositorNodeOutputFile
@@ -138,6 +269,8 @@ def render(
 ):
     x, y, z = position.x, position.y, position.z
     eu_x, eu_y, eu_z = euler_rotation.x, euler_rotation.y, euler_rotation.z
+
+    print(f"Old camera location: {camera.location}")
 
     camera.location[0] = x
     camera.location[1] = y
@@ -147,20 +280,49 @@ def render(
     camera.rotation_euler[1] = eu_y
     camera.rotation_euler[2] = eu_z
 
+    print(f"New camera location: {camera.location}")
+
     bpy.context.scene.cycles.samples = samples
 
-    file_name = f"image_x_{x}_y_{y}_z_{z}_eux_{eu_x}_euy_{eu_y}_euz_{eu_z}"
-
     bpy.context.scene.render.filepath = (
-        f"{output_folder}/samples_{samples}/{file_name}.png"
+        f"{output_folder}/samples_{samples}/{output_file_name}.png"
     )
 
     bpy.ops.render.render(write_still=True)
 
+    if composite_output_nodes is not None:
+        for key in composite_output_nodes.keys():
+            os.rename(
+                f"{output_folder}/samples_{samples}/{key}/{aux_feature_image_name}",
+                f"{output_folder}/samples_{samples}/{key}/{output_file_name}.png",
+            )
+
+        if not os.path.exists(
+            f"{output_folder}/samples_{samples}/view_space_matrix"
+        ):
+            os.makedirs(f"{output_folder}/samples_{samples}/view_space_matrix")
+
+        np.save(
+            f"{output_folder}/samples_{samples}/view_space_matrix/{output_file_name}.npy",
+            np.array(camera.matrix_world.inverted().to_3x3()),
+        )
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+
 
 def main():
-    scene_name = "barbershop"
+    # scene_name = "barbershop"
+    # # num_data_points = 1600
+    # num_data_points = 1568
+    # seed = 1
+    # spps = [1, 2, 4, 8, 1024]
+
+    scene_name = "classroom"
     num_data_points = 1600
+    seed = 0
     spps = [1, 2, 4, 8, 1024]
 
     output_folder = f"output/{scene_name}"
@@ -168,10 +330,26 @@ def main():
 
     scene_info = SCENE_INFO[scene_name]
 
+    # Set seed.
+    set_seed(seed)
+
     # Load the scene.
     bpy.ops.wm.open_mainfile(filepath=scene_info.scene_file_path)
     reference_positions = scene_info.reference_camera_pos
-    camera = bpy.data.objects.get("Camera")
+    camera = bpy.data.objects.get(scene_info.camera_name)
+
+    print(camera)
+
+    bpy.context.scene.camera = camera
+
+    print(bpy.context.scene.objects.keys())
+    print(bpy.context.scene)
+    print(bpy.context.scene.camera)
+
+    for ob in bpy.context.scene.objects:
+        if ob.type == "CAMERA":
+            print("FOUND CAMERA")
+            print(ob)
 
     setup_renderer(use_gpu=False)
 
@@ -181,8 +359,14 @@ def main():
     for data_idx in range(num_data_points):
         # Sample two reference positions and interpolate between them.
         idxs = np.random.choice(len(reference_positions), replace=False, size=2)
+
+        print(idxs)
+
         reference_pos_1 = reference_positions[idxs[0]]
         reference_pos_2 = reference_positions[idxs[1]]
+
+        print(reference_pos_1)
+        print(reference_pos_2)
 
         interpolation_coeff = np.random.uniform()
         camera_pos = (
@@ -190,21 +374,30 @@ def main():
             + (1.0 - interpolation_coeff) * reference_pos_2
         )
 
+        # print(f"Interpolated camera pos: {camera_pos}")
+
         # Loop over all samples per pixel to render at.
         for spp in spps:
             # Get auxiliary features only for low spp images.
             if spp != 1024:
-                activate_compositing(f"output/{scene_name}/samples_{spp}")
+                nodes = activate_compositing(
+                    view_layer_name=scene_info.view_layer_name,
+                    path=f"output/{scene_name}/samples_{spp}",
+                )
             else:
-                deactivate_compositing()
+                nodes = deactivate_compositing(
+                    view_layer_name=scene_info.view_layer_name
+                )
 
             render(
-                camera,
-                Obj3D(*camera_pos[:3]),
-                Obj3D(*camera_pos[3:]),
-                output_folder,
-                spp,
-                None,
+                camera=camera,
+                position=Obj3D(*camera_pos[:3]),
+                euler_rotation=Obj3D(*camera_pos[3:]),
+                output_folder=output_folder,
+                output_file_name=f"image_{data_idx}",
+                samples=spp,
+                composite_output_nodes=nodes,
+                aux_feature_image_name=scene_info.aux_feature_image_name,
             )
 
         # Print progess to console.
