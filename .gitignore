@@ -3,8 +3,10 @@
 .DS_Store
 __pycache__
 wandb
-rendered_images/unzipped
 multirun
 rendered_images/amazon_bistro
 checkpoints/archive
 blender_data_gen/scenes/*
+blender_data_gen/output/*
+blender_data_gen/blender-4.1.1-linux-x64.tar.xz
+rendered_images/*
