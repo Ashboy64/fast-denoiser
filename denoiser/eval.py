@@ -1,4 +1,6 @@
+import os
 import time
+import tqdm
 import hydra
 import matplotlib.pyplot as plt
 
@@ -33,12 +35,73 @@ def seed(seed=0):
     torch.manual_seed(seed)
 
 
-def visualize_predictions(model, dataloader, device, num_images=10):
+@torch.no_grad()
+def compute_errors(model, dataloaders, device):
+    model.eval()
+
+    losses = []
+    metrics = []
+
+    for dataloader in dataloaders:
+        running_loss = 0.0
+
+        running_l1 = 0.0
+        running_l2 = 0.0
+
+        num_samples = 0
+
+        for features, targets in tqdm.tqdm(dataloader):
+            features = move_features_to_device(features, device)
+            targets = move_features_to_device(targets, device)
+
+            preds = model.forward_with_preprocess(features)
+
+            num_samples += preds.shape[0]
+
+            running_loss += model.compute_loss(features, targets)[0]
+
+            curr_l1 = torch.mean(
+                torch.abs(preds - targets["rgb"]), dim=(1, 2, 3)
+            )
+            curr_l1 = torch.sum(curr_l1)
+            running_l1 += curr_l1
+
+            curr_l2 = torch.mean((preds - targets["rgb"]) ** 2, dim=(1, 2, 3))
+            curr_l2 = torch.sum(curr_l2)
+            running_l2 += curr_l2
+
+        losses.append(running_loss / len(dataloader))
+        metrics.append(
+            {
+                "l1_error": running_l1 / num_samples,
+                "l2_error": running_l2 / num_samples,
+            }
+        )
+
+    model.train()
+    return list(zip(losses, metrics))
+
+
+def print_error_metrics(metrics):
+    for metric_name, metric_val in metrics.items():
+        print(f"{metric_name} = {metric_val}")
+
+
+def visualize_predictions(
+    model, dataloader, preprocess_outside, device, num_images=10
+):
     features, targets = next(iter(dataloader))
     features = move_features_to_device(features, device)
     targets = move_features_to_device(targets, device)
 
-    outputs = model(features)
+    if preprocess_outside:
+        input_features = torch.concat(
+            model.preprocess_features(features), dim=1
+        )
+    else:
+        input_features = features
+
+    outputs = model(input_features)
 
     for image_idx in range(num_images):
         original_image = targets["rgb"][image_idx, ...]
@@ -151,26 +214,85 @@ def build_and_optimize_model(config, dataloader):
 def main(config):
     seed(config.seed)
 
-    train_loader, val_loader, test_loader = load_data(config.data)
+    # model = load_model(config.model).to(config.device)
+    # model.load_state_dict(
+    #     torch.load(
+    #         config.logging.ckpt_dir, map_location=torch.device(config.device)
+    #     )
+    # )
+    # model.eval()
 
+    train_loader, val_loader, test_loader = load_data(config.data)
     model = build_and_optimize_model(config, train_loader)
 
-    # print(f"Visualizing predictions")
-    # visualize_predictions(model, val_loader, config.device)
+    # print(f"Evaluating Model")
+    # (val_loss, val_metrics), (test_loss, test_metrics) = compute_errors(
+    #     model,
+    #     [val_loader, test_loader],
+    #     config.device,
+    # )
 
-    print(f"Measuring throughput")
+    # print(f"Val metrics:")
+    # print_error_metrics(val_metrics)
 
-    measure_throughput(
-        model,
-        train_loader,
-        config.device,
-        preprocess_outside=config.preprocess_outside,
-        num_warmup=config.num_warmup,
-        num_trials=config.num_trials,
-        num_samples=config.num_samples,
-        batch_size=config.data.batch_size,
+    # print(f"Test metrics:")
+    # print_error_metrics(test_metrics)
+
+    print(f"Visualizing predictions")
+    visualize_predictions(
+        model, val_loader, config.preprocess_outside, config.device
     )
+
+    # print(f"Measuring throughput")
+    # measure_throughput(
+    #     model,
+    #     train_loader,
+    #     config.device,
+    #     preprocess_outside=config.preprocess_outside,
+    #     num_warmup=config.num_warmup,
+    #     num_trials=config.num_trials,
+    #     num_samples=config.num_samples,
+    #     batch_size=config.data.batch_size,
+    # )
+
+
+@hydra.main(
+    config_path="config", config_name="tiny_imagenet", version_base=None
+)
+def batch_eval(config):
+    ckpt_dirs = [
+        (1, "05_28_2024-23_27_55"),
+        (4, "05_29_2024-00_36_11"),
+        (8, "05_29_2024-01_44_09"),
+        (1, "05_29_2024-00_01_59"),
+        (4, "05_29_2024-01_10_22"),
+        (8, "05_29_2024-02_17_54"),
+    ]
+
+    ckpt_prefix = "../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals"
+
+    for (spp, ckpt_dir) in ckpt_dirs:
+        config.logging.ckpt_dir = os.path.join(
+            ckpt_prefix, ckpt_dir, "iter_4999.pt"
+        )
+
+        config.data.low_spp = spp
+
+        train_loader, val_loader, test_loader = load_data(config.data)
+        model = build_and_optimize_model(config, train_loader)
+
+        print(f"Evaluating Model")
+        (val_loss, val_metrics), (test_loss, test_metrics) = compute_errors(
+            model,
+            [val_loader, test_loader],
+            config.device,
+        )
+
+        print(
+            f'{val_metrics["l1_error"]}\t{val_metrics["l2_error"]}\t{test_metrics["l1_error"]}\t{test_metrics["l2_error"]}'
+        )
 
 
 if __name__ == "__main__":
     main()
+    # batch_eval()

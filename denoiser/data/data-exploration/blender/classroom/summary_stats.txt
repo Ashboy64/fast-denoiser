@@ -1,0 +1,105 @@
+rgb-channel_0
+	mean input: 0.16803182661533356 target: 0.3530685603618622
+	std input: 0.27632269263267517 target: 0.19799579679965973
+	min input: 0.0 target: 0.0
+	max input: 1.0 target: 1.0
+	90th_percentile input: 0.5960784554481506 target: 0.6274510025978088
+	99th_percentile input: 1.0 target: 0.9764705896377563
+rgb-channel_1
+	mean input: 0.14920201897621155 target: 0.3112045228481293
+	std input: 0.2578291893005371 target: 0.19294895231723785
+	min input: 0.0 target: 0.0
+	max input: 1.0 target: 1.0
+	90th_percentile input: 0.529411792755127 target: 0.5686274766921997
+	99th_percentile input: 1.0 target: 0.9372549057006836
+rgb-channel_2
+	mean input: 0.13102278113365173 target: 0.27991583943367004
+	std input: 0.24281933903694153 target: 0.2009982317686081
+	min input: 0.0 target: 0.0
+	max input: 1.0 target: 1.0
+	90th_percentile input: 0.47058823704719543 target: 0.5529412031173706
+	99th_percentile input: 1.0 target: 0.9843137264251709
+depth-channel_0
+	mean input: 0.529877781867981 target: None
+	std input: 0.2917627692222595 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 0.929411768913269 target: None
+	99th_percentile input: 1.0 target: None
+depth-channel_1
+	mean input: 0.529877781867981 target: None
+	std input: 0.2917627692222595 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 0.929411768913269 target: None
+	99th_percentile input: 1.0 target: None
+depth-channel_2
+	mean input: 0.529877781867981 target: None
+	std input: 0.2917627692222595 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 0.929411768913269 target: None
+	99th_percentile input: 1.0 target: None
+diffuse_color-channel_0
+	mean input: 0.44364088773727417 target: None
+	std input: 0.23716937005519867 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 0.6784313917160034 target: None
+	99th_percentile input: 0.9843137264251709 target: None
+diffuse_color-channel_1
+	mean input: 0.40850821137428284 target: None
+	std input: 0.23393413424491882 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 0.6392157077789307 target: None
+	99th_percentile input: 0.9803921580314636 target: None
+diffuse_color-channel_2
+	mean input: 0.35346847772598267 target: None
+	std input: 0.22510042786598206 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 0.5607843399047852 target: None
+	99th_percentile input: 0.9725490212440491 target: None
+glossy_color-channel_0
+	mean input: 0.07987073063850403 target: None
+	std input: 0.13241615891456604 target: None
+	min input: 0.0 target: None
+	max input: 0.9176470637321472 target: None
+	90th_percentile input: 0.24313725531101227 target: None
+	99th_percentile input: 0.7137255072593689 target: None
+glossy_color-channel_1
+	mean input: 0.07933348417282104 target: None
+	std input: 0.13017955422401428 target: None
+	min input: 0.0 target: None
+	max input: 0.9098039269447327 target: None
+	90th_percentile input: 0.24313725531101227 target: None
+	99th_percentile input: 0.6941176652908325 target: None
+glossy_color-channel_2
+	mean input: 0.07889057695865631 target: None
+	std input: 0.12892025709152222 target: None
+	min input: 0.0 target: None
+	max input: 0.9098039269447327 target: None
+	90th_percentile input: 0.24313725531101227 target: None
+	99th_percentile input: 0.6823529601097107 target: None
+normal-channel_0
+	mean input: 0.24342690408229828 target: None
+	std input: 0.38596394658088684 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 1.0 target: None
+	99th_percentile input: 1.0 target: None
+normal-channel_1
+	mean input: 0.12186461687088013 target: None
+	std input: 0.2860352396965027 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 0.6745098233222961 target: None
+	99th_percentile input: 1.0 target: None
+normal-channel_2
+	mean input: 0.2932383120059967 target: None
+	std input: 0.42171987891197205 target: None
+	min input: 0.0 target: None
+	max input: 1.0 target: None
+	90th_percentile input: 1.0 target: None
+	99th_percentile input: 1.0 target: None

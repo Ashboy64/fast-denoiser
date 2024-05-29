@@ -22,15 +22,16 @@ def register_dataset(name):
     return register_curr_dataset
 
 
-def create_dataloaders(split_datasets, batch_size, num_dataloader_workers, 
-                       pin_memory=True):
+def create_dataloaders(
+    split_datasets, batch_size, num_dataloader_workers, pin_memory=True
+):
     train_loader = DataLoader(
         split_datasets[0],
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_dataloader_workers,
         pin_memory=pin_memory,
-        multiprocessing_context='fork'
+        multiprocessing_context="fork",
     )
     val_train = DataLoader(
         split_datasets[1],
@@ -38,7 +39,7 @@ def create_dataloaders(split_datasets, batch_size, num_dataloader_workers,
         shuffle=False,
         num_workers=num_dataloader_workers,
         pin_memory=pin_memory,
-        multiprocessing_context='fork'
+        multiprocessing_context="fork",
     )
     test_loader = DataLoader(
         split_datasets[2],
@@ -46,7 +47,7 @@ def create_dataloaders(split_datasets, batch_size, num_dataloader_workers,
         shuffle=False,
         num_workers=num_dataloader_workers,
         pin_memory=pin_memory,
-        multiprocessing_context='fork'
+        multiprocessing_context="fork",
     )
 
     return train_loader, val_train, test_loader
@@ -88,6 +89,37 @@ def load_pbrt_data(
     split_datasets = torch.utils.data.random_split(
         raw_dataset, lengths=[train_frac, val_frac, test_frac]
     )
+
+    return create_dataloaders(
+        split_datasets, batch_size, num_dataloader_workers
+    )
+
+
+@register_dataset("classroom")
+def load_classroom_data(
+    folder_path,
+    low_spp,
+    high_spp,
+    dtype,
+    batch_size,
+    preprocess_samples,
+    num_dataloader_workers=8,
+    **kwargs,
+):
+
+    split_datasets = []
+
+    for split_name in ["train", "val", "test"]:
+        split_datasets.append(
+            BlenderDataset(
+                folder_path=folder_path,
+                split_name=split_name,
+                low_spp=low_spp,
+                high_spp=high_spp,
+                dtype=dtype,
+                preprocess_samples=preprocess_samples,
+            )
+        )
 
     return create_dataloaders(
         split_datasets, batch_size, num_dataloader_workers
@@ -170,25 +202,16 @@ def load_data(data_config):
 
 
 if __name__ == "__main__":
-    # data_config = OmegaConf.create(
-    #     {
-    #         "name": "tiny_imagenet",
-    #         "num_proc": 8,
-    #         "seed": 0,
-    #         "batch_size": 64,
-    #     }
-    # )
-
     data_config = OmegaConf.create(
         {
-            "name": "pbrt",
-            "folder_path": "../../rendered_images",
-            "train_frac": 0.8,
-            "val_frac": 0.1,
-            "test_frac": 0.1,
-            "num_proc": 8,
+            "name": "classroom",
+            "folder_path": "../../data/blender/classroom/unzipped",
+            "low_spp": 1,
+            "high_spp": 1024,
+            "dtype": "float32",
             "batch_size": 64,
-            "num_dataloader_workers": 2,
+            "preprocess_samples": True,
+            "num_dataloader_workers": 1,
         }
     )
 

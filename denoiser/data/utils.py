@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import Dataset
 
 from torchvision import transforms
+from torchvision.transforms.functional import pil_to_tensor
 import torchvision.utils as vutils
 
 from data.load_exr import *
@@ -92,6 +93,32 @@ class NoiseWrapper(Dataset):
         features["rgb"] = self.input_transform(features["rgb"])
 
         return features, {"rgb": target_image}
+
+
+class PBRT_DummyDataset(Dataset):
+    def __init__(self, num_examples=4000) -> None:
+        super().__init__()
+
+        self.num_examples = num_examples
+        self.low_spp_samples = []
+        self.high_spp_samples = []
+
+        print("GENERATING DUMMY PBRT DATA")
+
+        channel_info = get_gbuffer_feature_metadata()
+        for _ in tqdm.trange(num_examples):
+            sample = {}
+            for key in channel_info:
+                num_channels = channel_info[key]
+                sample[key] = torch.randn((num_channels, 64, 64))
+            self.low_spp_samples.append(sample)
+            self.high_spp_samples.append(sample)
+
+    def __len__(self):
+        return self.num_examples
+
+    def __getitem__(self, index):
+        return self.low_spp_samples[index], self.high_spp_samples[index]
 
 
 class PBRT_Dataset(Dataset):
@@ -187,30 +214,137 @@ class PBRT_Dataset(Dataset):
         return low_spp_features, high_spp_features
 
 
-class PBRT_DummyDataset(Dataset):
-    def __init__(self, num_examples=4000) -> None:
+class BlenderDataset(Dataset):
+    def __init__(
+        self,
+        folder_path,
+        split_name,
+        low_spp,
+        high_spp,
+        preprocess_samples,
+        dtype,
+    ) -> None:
         super().__init__()
 
-        self.num_examples = num_examples
-        self.low_spp_samples = []
-        self.high_spp_samples = []
+        self.folder_path = folder_path
+        self.filepaths = self.get_filepaths(folder_path, split_name)
 
-        print("GENERATING DUMMY PBRT DATA")
+        self.low_spp = low_spp
+        self.high_spp = high_spp
 
-        channel_info = get_gbuffer_feature_metadata()
-        for _ in tqdm.trange(num_examples):
-            sample = {}
-            for key in channel_info:
-                num_channels = channel_info[key]
-                sample[key] = torch.randn((num_channels, 64, 64))
-            self.low_spp_samples.append(sample)
-            self.high_spp_samples.append(sample)
+
+        dtypes = {
+            "float16": torch.float16,
+            "float32": torch.float32,
+        }
+        self.dtype = dtypes[dtype]
+
+        # Low spp is assumed to have all these features + rgb. High spp is
+        # assumed to have only rgb.
+        self.low_spp_aux_features = [
+            "depth",
+            "diffuse_color",
+            "glossy_color",
+            "normal",
+        ]
+
+        self.all_high_spp = []
+        self.all_low_spp = []
+
+        self.load_samples(self.filepaths)
+
+        if preprocess_samples:
+            self.preprocess_samples()
+
+    def get_filepaths(self, folder_path, split_name):
+        if split_name is None:
+            return self.get_all_filenames(folder_path)
+
+        paths = []
+
+        with open(os.path.join(folder_path, f"{split_name}_split.txt")) as f:
+            lines = f.readlines()
+
+            for line in lines:
+                batch_dir, filename = line.strip().split(",")
+                if filename == ".DS_Store":
+                    continue
+                paths.append((os.path.join(folder_path, batch_dir), filename))
+
+        return paths
+
+    def get_all_filepaths(self, folder_path):
+        batch_dirs = [
+            dirname
+            for dirname in os.listdir(folder_path)
+            if os.path.isdir(os.path.join(folder_path, dirname))
+        ]
+
+        filepaths = []
+
+        for batch_dir in batch_dirs:
+            batch_dir = os.path.join(folder_path, batch_dir)
+
+            filepaths = filepaths + [
+                (batch_dir, filename)
+                for filename in os.listdir(batch_dir)
+                if os.path.isfile(
+                    os.path.join(batch_dir, f"samples_{self.low_spp}", filename)
+                )
+                and filename != ".DS_STORE"
+            ]
+
+        return filepaths
+
+    def image_to_tensor(self, image):
+        tensor = pil_to_tensor(image).to(self.dtype)
+        return tensor / 255.0
+
+    def load_samples(self, filepaths):
+        # Get the unzipped folders containing images.
+        for batch_dir_path, filename in tqdm.tqdm(filepaths):
+            low_batch_path = os.path.join(
+                batch_dir_path, f"samples_{self.low_spp}"
+            )
+            high_batch_path = os.path.join(
+                batch_dir_path, f"samples_{self.high_spp}"
+            )
+
+            self.load_low_spp_sample(low_batch_path, filename)
+            self.load_high_spp_sample(high_batch_path, filename)
+
+    def load_low_spp_sample(self, low_batch_path, filename):
+        sample = {}
+
+        rgb_path = os.path.join(low_batch_path, filename)
+        rgb_data = self.image_to_tensor(Image.open(rgb_path))
+        sample["rgb"] = rgb_data
+
+        for aux_feature in self.low_spp_aux_features:
+            aux_path = os.path.join(low_batch_path, aux_feature, filename)
+            sample[aux_feature] = self.image_to_tensor(Image.open(aux_path))
+
+        self.all_low_spp.append(sample)
+
+    def load_high_spp_sample(self, high_batch_path, filename):
+        sample = {}
+        rgb_path = os.path.join(high_batch_path, filename)
+        rgb_data = self.image_to_tensor(Image.open(rgb_path))
+        sample["rgb"] = rgb_data
+
+        self.all_high_spp.append(sample)
+
+    def preprocess_samples(self):
+        pass
 
     def __len__(self):
-        return self.num_examples
+        return len(self.all_low_spp)
 
-    def __getitem__(self, index):
-        return self.low_spp_samples[index], self.high_spp_samples[index]
+    def __getitem__(self, idx):
+        low_spp_features = self.all_low_spp[idx]
+        high_spp_features = self.all_high_spp[idx]
+
+        return low_spp_features, high_spp_features
 
 
 def show_images(dataloader, num_images=6):
@@ -218,7 +352,7 @@ def show_images(dataloader, num_images=6):
     data_iter = iter(dataloader)
     features, targets = next(data_iter)
 
-    # print(features["rgb"].shape)
+    print(features["rgb"])
 
     input_images = []
     target_images = []

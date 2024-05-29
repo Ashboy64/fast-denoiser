@@ -27,8 +27,11 @@ def eval_model(model, dataloaders, device):
 
     for dataloader in dataloaders:
         running_loss = 0.0
+
         running_l1 = 0.0
         running_l2 = 0.0
+
+        num_samples = 0
 
         for features, targets in tqdm.tqdm(dataloader):
             features = move_features_to_device(features, device)
@@ -36,16 +39,25 @@ def eval_model(model, dataloaders, device):
 
             preds = model.forward_with_preprocess(features)
 
+            num_samples += preds.shape[0]
+
             running_loss += model.compute_loss(features, targets)[0]
 
-            running_l1 += torch.mean(torch.abs(preds - targets["rgb"]))
-            running_l2 += torch.mean((preds - targets["rgb"]) ** 2)
+            curr_l1 = torch.mean(
+                torch.abs(preds - targets["rgb"]), dim=(1, 2, 3)
+            )
+            curr_l1 = torch.sum(curr_l1)
+            running_l1 += curr_l1
+
+            curr_l2 = torch.mean((preds - targets["rgb"]) ** 2, dim=(1, 2, 3))
+            curr_l2 = torch.sum(curr_l2)
+            running_l2 += curr_l2
 
         losses.append(running_loss / len(dataloader))
         metrics.append(
             {
-                "l1_error": running_l1 / len(dataloader),
-                "l2_error": running_l2 / len(dataloader),
+                "l1_error": running_l1 / num_samples,
+                "l2_error": running_l2 / num_samples,
             }
         )
 

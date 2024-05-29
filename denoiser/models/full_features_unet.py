@@ -32,17 +32,17 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
             nn.Conv2d(
                 self.num_input_channels, 32, kernel_size=3, stride=1, padding=1
             ),
-            nn.ReLU(),
             nn.BatchNorm2d(32),
+            nn.ReLU(),
             nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
             nn.BatchNorm2d(32),
+            nn.ReLU(),
         )
 
         self.down_conv2 = nn.Sequential(
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
             nn.BatchNorm2d(64),
+            nn.ReLU(),
         )
 
         # Decoder (upsampling)
@@ -50,16 +50,16 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
             nn.ConvTranspose2d(
                 64, 32, kernel_size=3, stride=2, padding=1, output_padding=1
             ),
-            nn.ReLU(),
             nn.BatchNorm2d(32),
+            nn.ReLU(),
         )
 
         self.up_conv2 = nn.Sequential(
             nn.ConvTranspose2d(
                 64, 32, kernel_size=3, stride=2, padding=1, output_padding=1
             ),
-            nn.ReLU(),
             nn.BatchNorm2d(32),
+            nn.ReLU(),
             nn.Conv2d(32, 3, kernel_size=3, stride=1, padding=1),
             nn.Sigmoid(),
         )
@@ -71,7 +71,7 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
         for feature_name in self.features_to_use:
             feature = x[feature_name]
 
-            # Per sample depth normalization.
+            # Per sample depth normalization if using pbrt data.
             if feature_name == "position":
                 batch_size, _, width, height = feature.shape
 
@@ -82,6 +82,14 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
                 depth /= max_depths
 
                 features.append(depth.view(batch_size, 1, width, height))
+
+            # Extract only one of three (redundant) channels if using blender
+            # data.
+            elif feature_name == "depth":
+                batch_size, _, width, height = feature.shape
+                features.append(
+                    feature[:, 2, :, :].view(batch_size, 1, width, height)
+                )
 
             # Clamp sample variances to 90th percentile and normalize to [0, 1].
             elif feature_name == "rgb_sample_variance":

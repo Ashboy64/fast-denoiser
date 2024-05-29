@@ -23,34 +23,38 @@ Multiview pbrt test:
 
 ## Train Models
 
-### PBRT
+### PBRT / Blender
 
 Full features UNET denoiser sweeps:
 
 ```
-python train.py --multirun --config-name train_pbrt \
-    device=cuda \
+python train.py --multirun --config-name train_blender \
+    device=mps \
     logging.eval_interval=100 \
     logging.log_interval=100 \
     logging.ckpt_interval=100 \
-    logging.ckpt_dir=../checkpoints/full_features_unet/rgb-albedo-depth-surface_normals \
+    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/feature_ablations \
+    data.low_spp=1 \
+    data.high_spp=1024 \
     data.num_dataloader_workers=1 \
     model=full_features_unet \
-    model.loss_name=l1_error,l2_error \
-    optimizer.lr=1e-1,1e-2,1e-3 \
+    model.loss_name=l1_error \
+    optimizer.lr=1e-2 \
     training.num_grad_steps=5000 \
     data.batch_size=128 \
     logging.save_ckpt=True \
     wandb.mode=online \
-    wandb.run_name_suffix=rgb-albedo-depth-surface_normals
+    wandb.run_name_suffix=rgb-difuse
 ```
 
-Visualize predictions / eval:
+Benchmark throughput:
 
 ```
-python eval.py --config-name eval_pbrt \
-    device=cuda \
-    logging.ckpt_dir=../checkpoints/full_features_unet/only_rgb/05_21_2024-13_29_09/iter_4999.pt \
+python eval.py --config-name eval_blender \
+    device=mps \
+    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals/05_29_2024-00_36_11/iter_4999.pt \
+    data=classroom \
+    data.low_spp=4 \
     data.num_dataloader_workers=1 \
     num_samples=1024 \
     num_warmup=20 \
@@ -60,6 +64,32 @@ python eval.py --config-name eval_pbrt \
     wandb.mode=disabled \
     model=full_features_unet
 ```
+
+Visualize predictions:
+
+```
+python eval.py --config-name eval_blender \
+    device=mps \
+    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals/05_28_2024-23_27_55/iter_4999.pt \
+    data=classroom \
+    data.num_dataloader_workers=1 \
+    data.batch_size=64 \
+    model=full_features_unet
+```
+
+Compute errors on val and test splits:
+
+```
+python eval.py --config-name eval_blender \
+    device=mps \
+    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals/05_28_2024-23_27_55/iter_4999.pt \
+    data=classroom \
+    data.low_spp=4 \
+    data.num_dataloader_workers=1 \
+    data.batch_size=64 \
+    model=full_features_unet
+```
+
 
 ### Tiny Imagenet
 
