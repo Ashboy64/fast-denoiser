@@ -15,9 +15,10 @@ num_samples: 1024
 preprocess_outside: True
 
 optimizations:
-  trace_model: False
+  use_float16: True
+  trace_model: True
   script_model: False
-  optimize_for_inference: False
+  optimize_for_inference: True
 
 training:
   num_grad_steps: 5000

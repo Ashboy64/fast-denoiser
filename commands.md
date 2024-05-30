@@ -52,9 +52,9 @@ Benchmark throughput:
 ```
 python eval.py --config-name eval_blender \
     device=mps \
-    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals/05_29_2024-00_36_11/iter_4999.pt \
+    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals/05_28_2024-23_27_55/iter_4999.pt \
     data=classroom \
-    data.low_spp=4 \
+    data.low_spp=1 \
     data.num_dataloader_workers=1 \
     num_samples=1024 \
     num_warmup=20 \

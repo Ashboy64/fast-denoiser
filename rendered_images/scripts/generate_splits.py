@@ -3,7 +3,8 @@ import random
 import numpy as np
 
 
-DATASET_PATH = "../blender/classroom/unzipped"
+# DATASET_PATH = "../blender/classroom/unzipped"
+DATASET_PATH = "../blender/amazon_bistro/unzipped"
 
 SEED = 0
 

@@ -122,25 +122,26 @@ def compute_stats(samples):
     }
 
 
-def measure_throughput(
-    model,
-    dataloader,
-    device,
-    preprocess_outside=True,
-    num_warmup=10,
-    num_trials=100,
-    num_samples=1024,
-    batch_size=1024,
-):
-    example_inputs = move_features_to_device(next(iter(dataloader))[0], device)
+def measure_throughput(model, dataloader, config):
+    device = config.device
+    dtype = torch.float16 if config.optimizations.use_float16 else torch.float32
 
+    preprocess_outside = config.preprocess_outside
+
+    num_warmup = config.num_warmup
+    num_trials = config.num_trials
+    num_samples = config.num_samples
+
+    batch_size = config.data.batch_size
     num_batches = num_samples // batch_size
+
+    example_inputs = move_features_to_device(next(iter(dataloader))[0], device)
 
     benchmark_inputs = {}
     for feature_name, feature_vals in example_inputs.items():
         benchmark_inputs[feature_name] = torch.rand(
             batch_size, *feature_vals.shape[1:]
-        ).to(feature_vals)
+        ).to(device, dtype)
 
     if preprocess_outside:
         benchmark_inputs = torch.concat(
@@ -150,15 +151,28 @@ def measure_throughput(
     timings = []
 
     for run_idx in range(num_warmup + num_trials):
-        start_time = time.time()
+        # start_time = time.time()
 
+        if "cuda" in device:
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+            start.record()
+        else:
+            start_time = time.time()
+
+        # with torch.autograd.profiler.profile(use_cuda=True) as prof:
         for _ in range(num_batches):
             if preprocess_outside:
                 model.forward(benchmark_inputs)
             else:
                 model.forward_with_preprocess(benchmark_inputs)
 
-        time_taken = time.time() - start_time
+        if "cuda" in device:
+            end.record()
+            torch.cuda.synchronize()
+            time_taken = start.elapsed_time(end)
+        else:
+            time_taken = time.time() - start_time
 
         if run_idx >= num_warmup:
             timings.append(time_taken)
@@ -191,6 +205,10 @@ def build_and_optimize_model(config, dataloader):
     )
 
     optimized_model = model
+
+    if config.optimizations.use_float16:
+        optimized_model = model.to(torch.float16)
+        example_inputs = example_inputs.to(torch.float16)
 
     if config.optimizations.trace_model:
         optimized_model = torch.jit.trace(optimized_model, example_inputs)
@@ -238,40 +256,43 @@ def main(config):
     # print(f"Test metrics:")
     # print_error_metrics(test_metrics)
 
-    print(f"Visualizing predictions")
-    visualize_predictions(
-        model, val_loader, config.preprocess_outside, config.device
-    )
-
-    # print(f"Measuring throughput")
-    # measure_throughput(
-    #     model,
-    #     train_loader,
-    #     config.device,
-    #     preprocess_outside=config.preprocess_outside,
-    #     num_warmup=config.num_warmup,
-    #     num_trials=config.num_trials,
-    #     num_samples=config.num_samples,
-    #     batch_size=config.data.batch_size,
+    # print(f"Visualizing predictions")
+    # visualize_predictions(
+    #     model, val_loader, config.preprocess_outside, config.device
     # )
+
+    print(f"Measuring throughput")
+    measure_throughput(model, train_loader, config)
+
+
+def compute_num_params(model):
+    num_params = 0
+    for param in model.parameters():
+        num_params += torch.numel(param)
+    return num_params
 
 
 @hydra.main(
     config_path="config", config_name="tiny_imagenet", version_base=None
 )
+@torch.inference_mode()
 def batch_eval(config):
     ckpt_dirs = [
-        (1, "05_28_2024-23_27_55"),
-        (4, "05_29_2024-00_36_11"),
-        (8, "05_29_2024-01_44_09"),
-        (1, "05_29_2024-00_01_59"),
-        (4, "05_29_2024-01_10_22"),
-        (8, "05_29_2024-02_17_54"),
+        # (1, "05_28_2024-23_27_55"),
+        # (4, "05_29_2024-00_36_11"),
+        # (8, "05_29_2024-01_44_09"),
+        # (1, "05_29_2024-00_01_59"),
+        # (4, "05_29_2024-01_10_22"),
+        # (8, "05_29_2024-02_17_54"),
+        (1, "05_29_2024-11_47_13")
     ]
 
-    ckpt_prefix = "../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals"
+    # ckpt_prefix = "../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals"
+    ckpt_prefix = (
+        "../checkpoints/classroom/full_features_unet/feature_ablations"
+    )
 
-    for (spp, ckpt_dir) in ckpt_dirs:
+    for spp, ckpt_dir in ckpt_dirs:
         config.logging.ckpt_dir = os.path.join(
             ckpt_prefix, ckpt_dir, "iter_4999.pt"
         )
@@ -280,6 +301,8 @@ def batch_eval(config):
 
         train_loader, val_loader, test_loader = load_data(config.data)
         model = build_and_optimize_model(config, train_loader)
+
+        print(f"Num params = {compute_num_params(model)}")
 
         print(f"Evaluating Model")
         (val_loss, val_metrics), (test_loss, test_metrics) = compute_errors(
