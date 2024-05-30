@@ -9,6 +9,8 @@ import numpy as np
 
 import torch
 
+# torch.backends.cudnn.enabled = False
+
 from data import load_data, move_features_to_device
 from models import load_model
 
@@ -36,7 +38,7 @@ def seed(seed=0):
 
 
 @torch.no_grad()
-def compute_errors(model, dataloaders, device):
+def compute_errors(model, dataloaders, dtype, device):
     model.eval()
 
     losses = []
@@ -54,11 +56,11 @@ def compute_errors(model, dataloaders, device):
             features = move_features_to_device(features, device)
             targets = move_features_to_device(targets, device)
 
-            preds = model.forward_with_preprocess(features)
+            preds = model.forward_with_preprocess(features, dtype=dtype)
 
             num_samples += preds.shape[0]
 
-            running_loss += model.compute_loss(features, targets)[0]
+            running_loss += model.compute_loss(features, targets, dtype)[0]
 
             curr_l1 = torch.mean(
                 torch.abs(preds - targets["rgb"]), dim=(1, 2, 3)
@@ -122,9 +124,18 @@ def compute_stats(samples):
     }
 
 
+def get_model_dtype(config):
+    dtype = config.model_dtype
+    if dtype == "float16":
+        dtype = torch.float16
+    elif dtype == "float32":
+        dtype = torch.float32
+    return dtype
+
+
 def measure_throughput(model, dataloader, config):
     device = config.device
-    dtype = torch.float16 if config.optimizations.use_float16 else torch.float32
+    dtype = get_model_dtype(config)
 
     preprocess_outside = config.preprocess_outside
 
@@ -165,7 +176,7 @@ def measure_throughput(model, dataloader, config):
             if preprocess_outside:
                 model.forward(benchmark_inputs)
             else:
-                model.forward_with_preprocess(benchmark_inputs)
+                model.forward_with_preprocess(benchmark_inputs, dtype=dtype)
 
         if "cuda" in device:
             end.record()
@@ -184,16 +195,19 @@ def measure_throughput(model, dataloader, config):
 
     print(f"BENCHMARK RESULTS:")
     for stat_name, stat_val in stats.items():
-        print(f"\t{stat_name}: {stat_val * 1e3} ms")
+        print(f"{stat_name}: {stat_val * 1e3} ms")
 
 
 def build_and_optimize_model(config, dataloader):
+    dtype = get_model_dtype(config)
+
     model = load_model(config.model).to(config.device)
-    model.load_state_dict(
-        torch.load(
-            config.logging.ckpt_dir, map_location=torch.device(config.device)
-        )
-    )
+    # model.load_state_dict(
+    #     torch.load(
+    #         config.logging.ckpt_dir, map_location=torch.device(config.device)
+    #     )
+    # )
+    model = model.to(dtype)
     model.eval()
 
     example_inputs = move_features_to_device(
@@ -202,13 +216,9 @@ def build_and_optimize_model(config, dataloader):
 
     example_inputs = torch.concat(
         model.preprocess_features(example_inputs), dim=1
-    )
+    ).to(dtype)
 
     optimized_model = model
-
-    if config.optimizations.use_float16:
-        optimized_model = model.to(torch.float16)
-        example_inputs = example_inputs.to(torch.float16)
 
     if config.optimizations.trace_model:
         optimized_model = torch.jit.trace(optimized_model, example_inputs)
@@ -247,7 +257,8 @@ def main(config):
     # (val_loss, val_metrics), (test_loss, test_metrics) = compute_errors(
     #     model,
     #     [val_loader, test_loader],
-    #     config.device,
+    #     dtype=get_model_dtype(config),
+    #     device=config.device,
     # )
 
     # print(f"Val metrics:")

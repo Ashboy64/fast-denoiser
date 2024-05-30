@@ -126,15 +126,22 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
 
         return x5
 
-    def forward_with_preprocess(self, x):
+    def forward_with_preprocess(self, x, dtype=None):
         x = torch.concat(self.preprocess_features(x), dim=1)
+        if dtype is not None:
+            x = x.to(dtype)
         return self.forward(x)
 
-    def compute_loss(self, features, targets):
-        preds = self.forward_with_preprocess(features)
+    def compute_loss(self, features, targets, dtype=None):
+        preds = self.forward_with_preprocess(features, dtype)
+
+        # print(preds.dtype)
+        # print(targets["rgb"].dtype)
 
         l1_error = torch.mean(torch.abs(preds - targets["rgb"]))
         l2_error = torch.mean((preds - targets["rgb"]) ** 2)
+
+        # print(l1_error.dtype)
 
         metrics = {"l1_error": l1_error.detach(), "l2_error": l2_error.detach()}
 

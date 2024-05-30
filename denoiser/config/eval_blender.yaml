@@ -6,6 +6,7 @@ defaults:
   - override hydra/job_logging: disabled
 
 device: cpu
+model_dtype: float16
 seed: 0
 
 num_warmup: 20
@@ -15,7 +16,6 @@ num_samples: 1024
 preprocess_outside: True
 
 optimizations:
-  use_float16: True
   trace_model: True
   script_model: False
   optimize_for_inference: True

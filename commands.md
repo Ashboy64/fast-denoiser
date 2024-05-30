@@ -51,14 +51,14 @@ Benchmark throughput:
 
 ```
 python eval.py --config-name eval_blender \
-    device=mps \
+    device=cuda \
     logging.ckpt_dir=../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals/05_28_2024-23_27_55/iter_4999.pt \
     data=classroom \
     data.low_spp=1 \
     data.num_dataloader_workers=1 \
     num_samples=1024 \
-    num_warmup=20 \
-    num_trials=20 \
+    num_warmup=40 \
+    num_trials=40 \
     data.batch_size=1024 \
     logging.save_ckpt=False \
     wandb.mode=disabled \
