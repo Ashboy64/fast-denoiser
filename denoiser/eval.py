@@ -170,7 +170,7 @@ def measure_throughput(model, dataloader, config):
         if "cuda" in device:
             end.record()
             torch.cuda.synchronize()
-            time_taken = start.elapsed_time(end)
+            time_taken = start.elapsed_time(end) / 1e3
         else:
             time_taken = time.time() - start_time
 
