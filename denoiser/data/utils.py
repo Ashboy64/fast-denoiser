@@ -219,6 +219,7 @@ class BlenderDataset(Dataset):
         self,
         folder_path,
         split_name,
+        max_samples,
         low_spp,
         high_spp,
         preprocess_samples,
@@ -229,9 +230,13 @@ class BlenderDataset(Dataset):
         self.folder_path = folder_path
         self.filepaths = self.get_filepaths(folder_path, split_name)
 
+        if max_samples is not None:
+            self.filepaths = self.filepaths[
+                : min(len(self.filepaths), max_samples)
+            ]
+
         self.low_spp = low_spp
         self.high_spp = high_spp
-
 
         dtypes = {
             "float16": torch.float16,
@@ -246,6 +251,7 @@ class BlenderDataset(Dataset):
             "diffuse_color",
             "glossy_color",
             "normal",
+            "albedo",
         ]
 
         self.all_high_spp = []
@@ -266,9 +272,14 @@ class BlenderDataset(Dataset):
             lines = f.readlines()
 
             for line in lines:
-                batch_dir, filename = line.strip().split(",")
+                if "," not in line:
+                    batch_dir, filename = "batch_1", line.strip()
+                else:
+                    batch_dir, filename = line.strip().split(",")
+
                 if filename == ".DS_Store":
                     continue
+
                 paths.append((os.path.join(folder_path, batch_dir), filename))
 
         return paths
@@ -317,19 +328,24 @@ class BlenderDataset(Dataset):
         sample = {}
 
         rgb_path = os.path.join(low_batch_path, filename)
-        rgb_data = self.image_to_tensor(Image.open(rgb_path))
+        rgb_data = self.image_to_tensor(Image.open(rgb_path).convert("RGB"))
         sample["rgb"] = rgb_data
 
         for aux_feature in self.low_spp_aux_features:
+            if aux_feature == "albedo":
+                continue
             aux_path = os.path.join(low_batch_path, aux_feature, filename)
             sample[aux_feature] = self.image_to_tensor(Image.open(aux_path))
+
+        if "albedo" in self.low_spp_aux_features:
+            sample["albedo"] = sample["diffuse_color"] + sample["glossy_color"]
 
         self.all_low_spp.append(sample)
 
     def load_high_spp_sample(self, high_batch_path, filename):
         sample = {}
         rgb_path = os.path.join(high_batch_path, filename)
-        rgb_data = self.image_to_tensor(Image.open(rgb_path))
+        rgb_data = self.image_to_tensor(Image.open(rgb_path).convert("RGB"))
         sample["rgb"] = rgb_data
 
         self.all_high_spp.append(sample)

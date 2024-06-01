@@ -12,3 +12,4 @@ blender_data_gen/blender-4.1.1-linux-x64.tar.xz
 rendered_images/blender
 rendered_images/pbrt
 denoiser/denoiser-outputs
+checkpoints/classroom_no_albedo

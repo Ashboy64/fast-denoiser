@@ -53,6 +53,7 @@ def main():
         "diffuse_color",
         "glossy_color",
         "normal",
+        "albedo",
     ]
 
     all_values_inputs = dict(zip(feature_names, [[] for _ in feature_names]))

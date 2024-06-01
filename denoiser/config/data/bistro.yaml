@@ -1,0 +1,11 @@
+name: "blender"
+folder_path: "../rendered_images/blender/bistro/unzipped"
+low_spp: 1
+high_spp: 512
+dtype: "float32"
+batch_size: 64
+preprocess_samples: True
+num_dataloader_workers: 1
+max_train_samples: 1284
+max_val_samples: 159
+max_test_samples: 159

@@ -33,18 +33,19 @@ python train.py --multirun --config-name train_blender \
     logging.eval_interval=100 \
     logging.log_interval=100 \
     logging.ckpt_interval=100 \
-    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/feature_ablations \
+    logging.ckpt_dir=../checkpoints/amazon/full_features_unet \
+    data=bistro \
     data.low_spp=1 \
-    data.high_spp=1024 \
+    data.high_spp=512 \
     data.num_dataloader_workers=1 \
     model=full_features_unet \
     model.loss_name=l1_error \
     optimizer.lr=1e-2 \
     training.num_grad_steps=5000 \
     data.batch_size=128 \
-    logging.save_ckpt=True \
-    wandb.mode=online \
-    wandb.run_name_suffix=rgb-difuse
+    logging.save_ckpt=False \
+    wandb.mode=disabled \
+    wandb.run_name_suffix=rgb-albedo-depth-surface_normals
 ```
 
 Benchmark throughput:

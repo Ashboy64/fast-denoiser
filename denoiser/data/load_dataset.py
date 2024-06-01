@@ -95,8 +95,8 @@ def load_pbrt_data(
     )
 
 
-@register_dataset("classroom")
-def load_classroom_data(
+@register_dataset("blender")
+def load_blender_data(
     folder_path,
     low_spp,
     high_spp,
@@ -104,16 +104,22 @@ def load_classroom_data(
     batch_size,
     preprocess_samples,
     num_dataloader_workers=8,
+    max_train_samples=None,
+    max_val_samples=None,
+    max_test_samples=None,
     **kwargs,
 ):
 
     split_datasets = []
 
-    for split_name in ["train", "val", "test"]:
+    max_samples = [max_train_samples, max_val_samples, max_test_samples]
+
+    for split_idx, split_name in enumerate(["train", "val", "test"]):
         split_datasets.append(
             BlenderDataset(
                 folder_path=folder_path,
                 split_name=split_name,
+                max_samples=max_samples[split_idx],
                 low_spp=low_spp,
                 high_spp=high_spp,
                 dtype=dtype,

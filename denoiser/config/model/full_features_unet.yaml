@@ -4,13 +4,13 @@ loss_name: l1_error # ["l1_error", "l2_error"]
 
 features_to_use:
   rgb: 3
+  albedo: 3
 
-  # Albedo and position are for pbrt data.
-  # albedo: 3
+  # Position is only for pbrt data.
   # position: 1   # Position has x, y, z but we only take z / depth component.
   
   # Diffuse color and depth are for blender data.
-  diffuse_color: 3
+  # diffuse_color: 3
   depth: 1
 
   # surface_coords: 2
