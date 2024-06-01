@@ -1,4 +1,4 @@
-name: "blender"
+name: "classroom"
 folder_path: "../rendered_images/blender/classroom/unzipped"
 low_spp: 1
 high_spp: 1024

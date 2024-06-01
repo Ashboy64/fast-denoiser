@@ -94,8 +94,6 @@ def load_pbrt_data(
         split_datasets, batch_size, num_dataloader_workers
     )
 
-
-@register_dataset("blender")
 def load_blender_data(
     folder_path,
     low_spp,
@@ -130,6 +128,16 @@ def load_blender_data(
     return create_dataloaders(
         split_datasets, batch_size, num_dataloader_workers
     )
+
+
+@register_dataset("classroom")
+def load_classroom_data(**kwargs):
+    return load_blender_data(**kwargs)
+
+
+@register_dataset("bistro")
+def load_classroom_data(**kwargs):
+    return load_blender_data(**kwargs)
 
 
 @register_dataset("disk_gaussian_noise")
