@@ -4,7 +4,8 @@ import numpy as np
 
 
 # DATASET_PATH = "../blender/classroom/unzipped"
-DATASET_PATH = "../blender/amazon_bistro/unzipped"
+# DATASET_PATH = "../blender/bistro/unzipped"
+DATASET_PATH = "../blender/barbershop/unzipped"
 
 SEED = 0
 
@@ -32,7 +33,6 @@ def write_to_file(samples, file_path):
 
 
 def generate_split():
-
     batch_dirs = get_batch_dirs()
 
     train_samples = []

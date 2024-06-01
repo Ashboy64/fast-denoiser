@@ -123,93 +123,109 @@ class PBRT_DummyDataset(Dataset):
 
 class PBRT_Dataset(Dataset):
     def __init__(
-        self, device, preprocess_samples, folder_path=PBRT_DATA_PATH
+        self,
+        folder_path,
+        split_name,
+        max_samples,
+        low_spp,
+        high_spp,
+        preprocess_samples,
+        dtype,
     ) -> None:
         super().__init__()
 
         self.folder_path = folder_path
-        self.device = device
+        self.filenames = self.get_filenames(folder_path, split_name)
+
+        if max_samples is not None:
+            self.filenames = self.filenames[
+                : min(len(self.filenames), max_samples)
+            ]
+
+        self.low_spp = low_spp
+        self.high_spp = high_spp
+
+        dtypes = {
+            "float16": torch.float16,
+            "float32": torch.float32,
+        }
+        self.dtype = dtypes[dtype]
 
         self.all_high_spp = []
         self.all_low_spp = []
-        self.num_examples = 0
 
-        self.load_samples(folder_path)
+        self.load_samples()
 
         if preprocess_samples:
             self.preprocess_samples()
 
-    def load_samples(self, folder_path):
-        # Get the unzipped folders containing images.
-        batch_dirs = [
-            filename
-            for filename in os.listdir(folder_path)
-            if os.path.isdir(folder_path + "/" + filename)
-        ]
+    def get_filenames(self, folder_path, split_name):
+        if split_name is None:
+            return self.get_all_filenames(folder_path)
 
-        processed_samples = set([])
+        with open(os.path.join(folder_path, f"{split_name}_split.txt")) as f:
+            filenames = [name.strip() for name in f.readlines()]
 
-        print(f"PREPARING PBRT DATASET")
-        for batch_dir in batch_dirs:
-            batch_path = os.path.join(folder_path, batch_dir)
-            filenames = os.listdir(batch_path)
+        return filenames
 
-            for filename in tqdm.tqdm(filenames):
-                base_filename = filename.replace("_high.exr", "")
-                base_filename = base_filename.replace("_low.exr", "")
+    def get_all_filenames(self, folder_path):
+        return list(
+            set(
+                [
+                    "_".join(name.split("_")[:-1]).strip()
+                    for name in os.listdir(
+                        os.path.join(folder_path, "unzipped")
+                    )
+                ]
+            )
+        )
 
-                base_filepath = os.path.join(batch_dir, base_filename)
-                if base_filepath in processed_samples:
-                    continue
-                processed_samples.add(base_filepath)
+    def image_to_tensor(self, image):
+        tensor = pil_to_tensor(image).to(self.dtype)
+        return tensor
 
-                high_spp_filename = base_filename + "_high.exr"
-                low_spp_filename = base_filename + "_low.exr"
+    def load_samples(self):
+        for filename in self.filenames:
+            low_sample_path = os.path.join(
+                self.folder_path,
+                "unzipped",
+                f"{filename}_{self.low_spp}spp.exr",
+            )
+            high_sample_path = os.path.join(
+                self.folder_path,
+                "unzipped",
+                f"{filename}_{self.high_spp}spp.exr",
+            )
 
-                if high_spp_filename not in filenames:
-                    continue
+            self.all_low_spp.append(self.load_sample(low_sample_path))
+            self.all_high_spp.append(self.load_sample(high_sample_path))
 
-                if low_spp_filename not in filenames:
-                    continue
+    def load_sample(self, sample_path):
+        print(sample_path)
+        sample = read_gbufferfilm_exr(sample_path, height=64, width=64)
+        sample["depth"] = sample["position"]
+        del sample["position"]
 
-                high_spp_filepath = os.path.join(batch_path, high_spp_filename)
-                low_spp_filepath = os.path.join(batch_path, low_spp_filename)
+        num_position_channels = sample["depth"].shape[0]
+        max_positions = torch.amax(sample["depth"], dim=(-1, -2)).view(
+            num_position_channels, 1, 1
+        )
+        sample["depth"] /= max_positions
 
-                high_spp_features = read_gbufferfilm_exr(high_spp_filepath)
-                low_spp_features = read_gbufferfilm_exr(low_spp_filepath)
+        sample["normal"] = sample["surface_normals"]
+        del sample["surface_normals"]
 
-                self.all_high_spp.append(high_spp_features)
-                self.all_low_spp.append(low_spp_features)
-                self.num_examples += 1
-            # break
+        return sample
 
     def preprocess_samples(self):
-        clamp_features = ["rgb", "albedo"]
-
-        for idx in range(self.num_examples):
-            for clamp_feature in clamp_features:
-                self.all_high_spp[idx][clamp_feature] = torch.tensor(
-                    np.clip(
-                        self.all_high_spp[idx][clamp_feature],
-                        a_min=0.0,
-                        a_max=1.0,
-                    )
-                )
-
-                self.all_low_spp[idx][clamp_feature] = torch.tensor(
-                    np.clip(
-                        self.all_low_spp[idx][clamp_feature],
-                        a_min=0.0,
-                        a_max=1.0,
-                    )
-                )
+        pass
 
     def __len__(self):
-        return self.num_examples
+        return len(self.all_low_spp)
 
     def __getitem__(self, idx):
-        high_spp_features = self.all_high_spp[idx]
         low_spp_features = self.all_low_spp[idx]
+        high_spp_features = self.all_high_spp[idx]
 
         return low_spp_features, high_spp_features
 

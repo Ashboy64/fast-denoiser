@@ -73,26 +73,50 @@ def load_dummy_pbrt_data(
     )
 
 
-@register_dataset("pbrt")
 def load_pbrt_data(
     folder_path,
+    low_spp,
+    high_spp,
+    dtype,
     batch_size,
-    train_frac,
-    val_frac,
-    test_frac,
-    device,
     preprocess_samples,
     num_dataloader_workers=8,
+    max_train_samples=None,
+    max_val_samples=None,
+    max_test_samples=None,
     **kwargs,
 ):
-    raw_dataset = PBRT_Dataset(device, preprocess_samples, folder_path)
-    split_datasets = torch.utils.data.random_split(
-        raw_dataset, lengths=[train_frac, val_frac, test_frac]
-    )
+    split_datasets = []
+
+    max_samples = [max_train_samples, max_val_samples, max_test_samples]
+
+    for split_idx, split_name in enumerate(["train", "val", "test"]):
+        split_datasets.append(
+            PBRT_Dataset(
+                folder_path=folder_path,
+                split_name=split_name,
+                max_samples=max_samples[split_idx],
+                low_spp=low_spp,
+                high_spp=high_spp,
+                dtype=dtype,
+                preprocess_samples=preprocess_samples,
+            )
+        )
 
     return create_dataloaders(
         split_datasets, batch_size, num_dataloader_workers
     )
+
+
+@register_dataset("landscape")
+def load_landscape_data(**kwargs):
+    return load_pbrt_data(**kwargs)
+
+
+@register_dataset("san_miguel")
+def load_san_miguel_data(**kwargs):
+    return load_pbrt_data(**kwargs)
+
 
 def load_blender_data(
     folder_path,
@@ -136,7 +160,12 @@ def load_classroom_data(**kwargs):
 
 
 @register_dataset("bistro")
-def load_classroom_data(**kwargs):
+def load_bistro_data(**kwargs):
+    return load_blender_data(**kwargs)
+
+
+@register_dataset("barbershop")
+def load_barbershop_data(**kwargs):
     return load_blender_data(**kwargs)
 
 

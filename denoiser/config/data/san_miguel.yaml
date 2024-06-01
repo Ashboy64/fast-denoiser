@@ -1,0 +1,11 @@
+name: "san_miguel"
+folder_path: "../rendered_images/pbrt/san_miguel"
+low_spp: 1
+high_spp: 1024
+dtype: "float32"
+batch_size: 64
+preprocess_samples: True
+num_dataloader_workers: 1
+max_train_samples: null
+max_val_samples: null
+max_test_samples: null

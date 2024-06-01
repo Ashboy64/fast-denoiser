@@ -63,12 +63,14 @@ def get_gbuffer_feature_metadata():
     }
 
 
-def read_gbufferfilm_exr(filepath, dtype=np.float32):
+def read_gbufferfilm_exr(filepath, height=None, width=None, dtype=np.float32):
     """GBufferFilm fields are described in https://pbrt.org/users-guide-v4."""
 
     exr_file = OpenEXR.InputFile(filepath)
-    # print(exr_file.header()["channels"])
-    height, width = compute_exr_image_dims(exr_file)
+    print(exr_file.header()["channels"])
+
+    if height == None or width == None:
+        height, width = compute_exr_image_dims(exr_file)
 
     img_data = {}
 

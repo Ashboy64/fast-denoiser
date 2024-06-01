@@ -13,3 +13,4 @@ rendered_images/blender
 rendered_images/pbrt
 denoiser/denoiser-outputs
 checkpoints/classroom_no_albedo
+checkpoints/initial_results

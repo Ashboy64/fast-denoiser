@@ -83,27 +83,13 @@ class FullFeatures_UnetDenoisingCNN(nn.Module):
 
                 features.append(depth.view(batch_size, 1, width, height))
 
-            # Extract only one of three (redundant) channels if using blender
+            # Extract only last of three (redundant) channels if using blender
             # data.
             elif feature_name == "depth":
                 batch_size, _, width, height = feature.shape
                 features.append(
                     feature[:, 2, :, :].view(batch_size, 1, width, height)
                 )
-
-            # Clamp sample variances to 90th percentile and normalize to [0, 1].
-            elif feature_name == "rgb_sample_variance":
-                for channel_idx in range(3):
-                    feature[:, channel_idx, :, :] = (
-                        torch.clamp(
-                            feature[:, channel_idx, :, :],
-                            min=0.0,
-                            max=self.sample_variance_90th_percentile[
-                                channel_idx
-                            ],
-                        )
-                        / self.sample_variance_90th_percentile[channel_idx]
-                    )
 
             else:
                 features.append(feature)
