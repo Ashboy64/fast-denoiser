@@ -49,6 +49,7 @@ def compute_errors(model, dataloaders, dtype, device):
 
         running_l1 = 0.0
         running_l2 = 0.0
+        running_psnr = 0.0
 
         num_samples = 0
 
@@ -69,14 +70,17 @@ def compute_errors(model, dataloaders, dtype, device):
             running_l1 += curr_l1
 
             curr_l2 = torch.mean((preds - targets["rgb"]) ** 2, dim=(1, 2, 3))
-            curr_l2 = torch.sum(curr_l2)
-            running_l2 += curr_l2
+            running_l2 += torch.sum(curr_l2)
+
+            curr_psnr = torch.sum(10 * torch.log10(1.0 / curr_l2))
+            running_psnr += curr_psnr
 
         losses.append(running_loss / len(dataloader))
         metrics.append(
             {
                 "l1_error": running_l1 / num_samples,
                 "l2_error": running_l2 / num_samples,
+                "psnr": running_psnr / num_samples
             }
         )
 
@@ -90,7 +94,7 @@ def print_error_metrics(metrics):
 
 
 def visualize_predictions(
-    model, dataloader, preprocess_outside, device, num_images=10
+    model, dataloader, preprocess_outside, device, dtype, num_images=10
 ):
     features, targets = next(iter(dataloader))
     features = move_features_to_device(features, device)
@@ -103,7 +107,7 @@ def visualize_predictions(
     else:
         input_features = features
 
-    outputs = model(input_features)
+    outputs = model(input_features.to(dtype)).to(torch.float32)
 
     for image_idx in range(num_images):
         original_image = targets["rgb"][image_idx, ...]
@@ -202,11 +206,11 @@ def build_and_optimize_model(config, dataloader):
     dtype = get_model_dtype(config)
 
     model = load_model(config.model).to(config.device)
-    # model.load_state_dict(
-    #     torch.load(
-    #         config.logging.ckpt_dir, map_location=torch.device(config.device)
-    #     )
-    # )
+    model.load_state_dict(
+        torch.load(
+            config.logging.ckpt_dir, map_location=torch.device(config.device)
+        )
+    )
     model = model.to(dtype)
     model.eval()
 
@@ -253,27 +257,34 @@ def main(config):
     train_loader, val_loader, test_loader = load_data(config.data)
     model = build_and_optimize_model(config, train_loader)
 
-    # print(f"Evaluating Model")
-    # (val_loss, val_metrics), (test_loss, test_metrics) = compute_errors(
-    #     model,
-    #     [val_loader, test_loader],
-    #     dtype=get_model_dtype(config),
-    #     device=config.device,
-    # )
+    if config.compute_errors:
+        print(f"Computing val and test set metrics")
+        (val_loss, val_metrics), (test_loss, test_metrics) = compute_errors(
+            model,
+            [val_loader, test_loader],
+            dtype=get_model_dtype(config),
+            device=config.device,
+        )
 
-    # print(f"Val metrics:")
-    # print_error_metrics(val_metrics)
+        print(f"Val metrics:")
+        print_error_metrics(val_metrics)
 
-    # print(f"Test metrics:")
-    # print_error_metrics(test_metrics)
+        print(f"Test metrics:")
+        print_error_metrics(test_metrics)
 
-    # print(f"Visualizing predictions")
-    # visualize_predictions(
-    #     model, val_loader, config.preprocess_outside, config.device
-    # )
+    if config.visualize_predictions:
+        print(f"Visualizing predictions")
+        visualize_predictions(
+            model,
+            val_loader,
+            config.preprocess_outside,
+            device=config.device,
+            dtype=get_model_dtype(config),
+        )
 
-    print(f"Measuring throughput")
-    measure_throughput(model, train_loader, config)
+    if config.measure_throughput:
+        print(f"Measuring throughput")
+        measure_throughput(model, train_loader, config)
 
 
 def compute_num_params(model):

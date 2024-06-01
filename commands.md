@@ -80,7 +80,7 @@ python train.py --multirun --config-name train_blender \
     logging.ckpt_dir=../checkpoints/classroom/full_features_unet/spp_sweeps \
     data=classroom \
     data.low_spp=1,4,8 \
-    data.high_spp=512 \
+    data.high_spp=1024 \
     data.num_dataloader_workers=1 \
     model=full_features_unet \
     model.loss_name=l1_error \
@@ -118,8 +118,10 @@ Visualize predictions:
 ```
 python eval.py --config-name eval_blender \
     device=mps \
-    logging.ckpt_dir=../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals/05_28_2024-23_27_55/iter_4999.pt \
-    data=classroom \
+    logging.ckpt_dir=../checkpoints/bistro/full_features_unet/06_01_2024-10_32_47/iter_4999.pt \
+    data=bistro \
+    data.low_spp=1 \
+    data.high_spp=512 \
     data.num_dataloader_workers=1 \
     data.batch_size=64 \
     model=full_features_unet

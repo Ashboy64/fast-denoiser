@@ -9,6 +9,10 @@ device: cpu
 model_dtype: float16
 seed: 0
 
+compute_errors: True
+visualize_predictions: True
+measure_throughput: False
+
 num_warmup: 20
 num_trials: 20
 num_samples: 1024
