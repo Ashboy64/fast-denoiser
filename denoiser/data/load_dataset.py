@@ -5,7 +5,7 @@ sys.path.append("..")
 from omegaconf import OmegaConf
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from datasets import load_dataset
 from data.utils import *
@@ -131,7 +131,6 @@ def load_blender_data(
     max_test_samples=None,
     **kwargs,
 ):
-
     split_datasets = []
 
     max_samples = [max_train_samples, max_val_samples, max_test_samples]
@@ -156,6 +155,7 @@ def load_blender_data(
 
 @register_dataset("classroom")
 def load_classroom_data(**kwargs):
+    print("LOADING CLASSROOM")
     return load_blender_data(**kwargs)
 
 
@@ -167,6 +167,44 @@ def load_bistro_data(**kwargs):
 @register_dataset("barbershop")
 def load_barbershop_data(**kwargs):
     return load_blender_data(**kwargs)
+
+
+@register_dataset("hybrid_blender")
+def load_hybrid_blender_data(
+    config_paths, batch_size, num_dataloader_workers, **kwargs
+):
+    split_datasets = []
+
+    for split_idx, split_name in enumerate(["train", "val", "test"]):
+        split_datasets.append([])
+
+        for config_path in config_paths:
+            curr_config = OmegaConf.load(config_path)
+            max_samples = [
+                curr_config.max_train_samples,
+                curr_config.max_val_samples,
+                curr_config.max_test_samples,
+            ]
+
+            split_datasets[-1].append(
+                BlenderDataset(
+                    folder_path=curr_config.folder_path,
+                    split_name=split_name,
+                    max_samples=max_samples[split_idx],
+                    low_spp=curr_config.low_spp,
+                    high_spp=curr_config.high_spp,
+                    dtype=curr_config.dtype,
+                    preprocess_samples=curr_config.preprocess_samples,
+                )
+            )
+
+    split_datasets = [
+        ConcatDataset(dataset_list) for dataset_list in split_datasets
+    ]
+
+    return create_dataloaders(
+        split_datasets, batch_size, num_dataloader_workers
+    )
 
 
 @register_dataset("disk_gaussian_noise")

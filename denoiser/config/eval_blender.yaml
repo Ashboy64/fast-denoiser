@@ -1,6 +1,6 @@
 defaults:
   - model: full_features_unet
-  - data: pbrt
+  - data: classroom
   - _self_
   - override hydra/hydra_logging: disabled  
   - override hydra/job_logging: disabled
@@ -12,6 +12,8 @@ seed: 0
 compute_errors: True
 visualize_predictions: True
 measure_throughput: False
+
+predictions_dir: "."
 
 num_warmup: 20
 num_trials: 20

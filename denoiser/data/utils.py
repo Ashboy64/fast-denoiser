@@ -355,6 +355,9 @@ class BlenderDataset(Dataset):
 
         if "albedo" in self.low_spp_aux_features:
             sample["albedo"] = sample["diffuse_color"] + sample["glossy_color"]
+        
+        if "depth" in self.low_spp_aux_features:
+            sample["depth"] = sample["depth"][:3, ...]
 
         self.all_low_spp.append(sample)
 

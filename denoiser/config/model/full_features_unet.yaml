@@ -6,20 +6,15 @@ features_to_use:
   rgb: 3
   albedo: 3
 
-  # Position is only for pbrt data.
   # position: 1   # Position has x, y, z but we only take z / depth component.
   
-  # Diffuse color and depth are for blender data.
   # diffuse_color: 3
   depth: 1
 
   # surface_coords: 2
   # grad_camera_depth: 2
   
-  # Surface normals are for pbrt, normal is for blender.
-  # surface_normals: 3
   normal: 3
-  
 
   # shading_normals: 3
   # rgb_sample_variance: 3

@@ -1,0 +1,5 @@
+name: "hybrid_blender"
+
+batch_size: 64
+num_dataloader_workers: 1
+config_paths: ["config/data/classroom.yaml", "config/data/bistro.yaml"]

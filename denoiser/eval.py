@@ -15,22 +15,6 @@ from data import load_data, move_features_to_device
 from models import load_model
 
 
-def show_image(denoised_image, noisy_image, original_image, example_idx=0):
-    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-    titles = ["Noisy Image", "Denoised Output", "Ground Truth"]
-    images = [noisy_image, denoised_image, original_image]
-
-    for idx, (img, title) in enumerate(zip(images, titles)):
-        img = img.squeeze(0).permute(1, 2, 0).cpu().numpy()
-        ax[idx].imshow(img)
-        ax[idx].set_title(title)
-        ax[idx].axis("off")
-
-    plt.savefig(f"example_{example_idx}.png")
-
-    # plt.show()
-
-
 def seed(seed=0):
     random.seed(seed)
     np.random.seed(seed)
@@ -80,7 +64,7 @@ def compute_errors(model, dataloaders, dtype, device):
             {
                 "l1_error": running_l1 / num_samples,
                 "l2_error": running_l2 / num_samples,
-                "psnr": running_psnr / num_samples
+                "psnr": running_psnr / num_samples,
             }
         )
 
@@ -93,8 +77,35 @@ def print_error_metrics(metrics):
         print(f"{metric_name} = {metric_val}")
 
 
+def show_image(
+    denoised_image,
+    noisy_image,
+    original_image,
+    example_idx=0,
+    predictions_dir=".",
+):
+    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+    titles = ["Noisy Image", "Denoised Output", "Ground Truth"]
+    images = [noisy_image, denoised_image, original_image]
+
+    for idx, (img, title) in enumerate(zip(images, titles)):
+        img = img.squeeze(0).permute(1, 2, 0).cpu().numpy()
+        ax[idx].imshow(img)
+        ax[idx].set_title(title)
+        ax[idx].axis("off")
+
+    os.makedirs(predictions_dir, exist_ok=True)
+    plt.savefig(os.path.join(predictions_dir, f"example_{example_idx}.png"))
+
+
 def visualize_predictions(
-    model, dataloader, preprocess_outside, device, dtype, num_images=10
+    model,
+    dataloader,
+    preprocess_outside,
+    predictions_dir,
+    device,
+    dtype,
+    num_images=10,
 ):
     features, targets = next(iter(dataloader))
     features = move_features_to_device(features, device)
@@ -114,7 +125,13 @@ def visualize_predictions(
         noisy_image = features["rgb"][image_idx, ...]
         denoised_image = outputs[image_idx, ...]
 
-        show_image(denoised_image, noisy_image, original_image, image_idx)
+        show_image(
+            denoised_image,
+            noisy_image,
+            original_image,
+            image_idx,
+            predictions_dir,
+        )
 
 
 def compute_stats(samples):
@@ -246,16 +263,10 @@ def build_and_optimize_model(config, dataloader):
 def main(config):
     seed(config.seed)
 
-    # model = load_model(config.model).to(config.device)
-    # model.load_state_dict(
-    #     torch.load(
-    #         config.logging.ckpt_dir, map_location=torch.device(config.device)
-    #     )
-    # )
-    # model.eval()
-
     train_loader, val_loader, test_loader = load_data(config.data)
     model = build_and_optimize_model(config, train_loader)
+
+    print(f"Num params = {compute_num_params(model)}")
 
     if config.compute_errors:
         print(f"Computing val and test set metrics")
@@ -272,12 +283,17 @@ def main(config):
         print(f"Test metrics:")
         print_error_metrics(test_metrics)
 
+        print(
+            f'{val_metrics["l1_error"]}\t{val_metrics["l2_error"]}\t{val_metrics["psnr"]}\t{test_metrics["l1_error"]}\t{test_metrics["l2_error"]}\t{test_metrics["psnr"]}'
+        )
+
     if config.visualize_predictions:
         print(f"Visualizing predictions")
         visualize_predictions(
             model,
             val_loader,
             config.preprocess_outside,
+            predictions_dir=config.predictions_dir,
             device=config.device,
             dtype=get_model_dtype(config),
         )
@@ -300,26 +316,52 @@ def compute_num_params(model):
 @torch.inference_mode()
 def batch_eval(config):
     ckpt_dirs = [
-        # (1, "05_28_2024-23_27_55"),
-        # (4, "05_29_2024-00_36_11"),
-        # (8, "05_29_2024-01_44_09"),
-        # (1, "05_29_2024-00_01_59"),
-        # (4, "05_29_2024-01_10_22"),
-        # (8, "05_29_2024-02_17_54"),
-        (1, "05_29_2024-11_47_13")
+        # (
+        #     1,
+        #     "06_01_2024-14_35_17",
+        #     "../denoiser-outputs/classroom/spp_transfer/1_to_1",
+        # ),
+        # (
+        #     4,
+        #     "06_01_2024-14_35_17",
+        #     "../denoiser-outputs/classroom/spp_transfer/1_to_4",
+        # ),
+        # (
+        #     8,
+        #     "06_01_2024-14_35_17",
+        #     "../denoiser-outputs/classroom/spp_transfer/1_to_8",
+        # ),
+        # (
+        #     4,
+        #     "06_01_2024-14_46_54",
+        #     "../denoiser-outputs/classroom/spp_sweeps/spp_4",
+        # ),
+        (
+            1,
+            "../checkpoints/classroom/full_features_unet/spp_sweeps/06_01_2024-14_35_17",
+            "../denoiser-outputs/classroom/spp_transfer/8_to_1",
+        ),
+        (
+            4,
+            "../checkpoints/classroom/full_features_unet/spp_sweeps/06_01_2024-14_35_17",
+            "../denoiser-outputs/classroom/spp_transfer/8_to_4",
+        ),
+        (
+            8,
+            "../checkpoints/classroom/full_features_unet/spp_sweeps/06_01_2024-14_35_17",
+            "../denoiser-outputs/classroom/spp_transfer/8_to_8",
+        ),
     ]
 
-    # ckpt_prefix = "../checkpoints/classroom/full_features_unet/rgb-diffuse-depth-surface_normals"
-    ckpt_prefix = (
-        "../checkpoints/classroom/full_features_unet/feature_ablations"
-    )
+    ckpt_prefix = "../checkpoints/classroom/full_features_unet/spp_sweeps"
 
-    for spp, ckpt_dir in ckpt_dirs:
+    for spp, ckpt_dir, predictions_dir in ckpt_dirs:
         config.logging.ckpt_dir = os.path.join(
             ckpt_prefix, ckpt_dir, "iter_4999.pt"
         )
 
         config.data.low_spp = spp
+        config.predictions_dir = predictions_dir
 
         train_loader, val_loader, test_loader = load_data(config.data)
         model = build_and_optimize_model(config, train_loader)
@@ -330,11 +372,22 @@ def batch_eval(config):
         (val_loss, val_metrics), (test_loss, test_metrics) = compute_errors(
             model,
             [val_loader, test_loader],
-            config.device,
+            device=config.device,
+            dtype=get_model_dtype(config),
+        )
+
+        print(f"Visualizing predictions")
+        visualize_predictions(
+            model,
+            val_loader,
+            config.preprocess_outside,
+            predictions_dir=config.predictions_dir,
+            device=config.device,
+            dtype=get_model_dtype(config),
         )
 
         print(
-            f'{val_metrics["l1_error"]}\t{val_metrics["l2_error"]}\t{test_metrics["l1_error"]}\t{test_metrics["l2_error"]}'
+            f'{val_metrics["l1_error"]}\t{val_metrics["l2_error"]}\t{val_metrics["psnr"]}\t{test_metrics["l1_error"]}\t{test_metrics["l2_error"]}\t{test_metrics["psnr"]}'
         )
 
 
