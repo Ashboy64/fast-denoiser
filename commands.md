@@ -229,6 +229,27 @@ python eval.py --config-name eval_blender \
     model=full_features_unet
 ```
 
+### Hybrid
+
+```
+python eval.py --config-name eval_blender \
+    device=mps \
+    logging.ckpt_dir=../checkpoints/hybrid_classroom_bistro/full_features_unet/06_01_2024-17_24_28/iter_4999.pt \
+    predictions_dir=../denoiser-outputs/hybrid_classroom_bistro \
+    data=hybrid_blender \
+    data.num_dataloader_workers=1 \
+    compute_errors=True \
+    visualize_predictions=True \
+    measure_throughput=False \
+    num_samples=1024 \
+    num_warmup=40 \
+    num_trials=40 \
+    data.batch_size=1024 \
+    logging.save_ckpt=False \
+    wandb.mode=disabled \
+    model=full_features_unet
+```
+
 
 ### Tiny Imagenet
 

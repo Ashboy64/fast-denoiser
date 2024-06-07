@@ -133,6 +133,37 @@ def visualize_predictions(
             predictions_dir,
         )
 
+        # Plot the auxiliary features as well.
+        # albedo = (
+        #     features["albedo"][image_idx, ...].permute(1, 2, 0).cpu().numpy()
+        # )
+        # plt.cla()
+        # plt.imshow(albedo)
+        # plt.savefig(
+        #     os.path.join(predictions_dir, f"example_{image_idx}_albedo.png")
+        # )
+
+        # depth = features["depth"][image_idx, ...].permute(1, 2, 0).cpu().numpy()
+        # plt.cla()
+        # plt.imshow(depth)
+        # plt.savefig(
+        #     os.path.join(predictions_dir, f"example_{image_idx}_depth.png")
+        # )
+
+        # surface_normals = (
+        #     features["normal"][image_idx, ...]
+        #     .permute(1, 2, 0)
+        #     .cpu()
+        #     .numpy()
+        # )
+        # plt.cla()
+        # plt.imshow(surface_normals)
+        # plt.savefig(
+        #     os.path.join(
+        #         predictions_dir, f"example_{image_idx}_surface_normals.png"
+        #     )
+        # )
+
 
 def compute_stats(samples):
     return {
